@@ -1,0 +1,50 @@
+// https://quarto.org/docs/presentations/revealjs/themes.html
+
+// add background image
+
+/*-- scss:defaults --*/
+
+// change font types
+//$font-family-sans-serif: "Helvetica", "Arial", sans-serif !default;
+//$presentation-heading-font: "Helvetica", "Arial", sans-serif !default;
+
+// change font sizes a bit
+//$presentation-h1-font-size: 1.5em; // make title and section headings smaller
+//$presentation-h2-font-size: 1.5em; // make other parts a little smaller
+$presentation-h1-font-size: 1.3em; // make title and section headings smaller
+$presentation-h2-font-size: 1.3em; // make other parts a little smaller
+$presentation-font-size-root: 30px; // regular font size
+$presentation-font-smaller: 0.7; // option for "smaller" rescaling, default .7 way smaller
+//$code-block-font-size: 0.7em; // default is .55em which is kind of small?
+$code-block-font-size: 0.75em; // default is .55em which is kind of small?
+
+// Change font sizes for input elements
+input[type="number"] {
+  font-size: 1em;
+}
+.shiny-input-container label {
+  font-size: 1em;
+}
+.irs-grid-text {
+  font-size: 1em;
+}
+
+
+
+// change color a bit
+//$presentation-heading-color: #ed1b2f !default; // McGill red
+//$presentation-heading-color: #ba1525 !default; // Darker version (adjust "Value") of McGill red
+
+
+/*-- scss:rules --*/
+//.reveal .footer {
+//  font-size: 0.6em !important;
+//}
+
+// Text as blue and red
+//.highlight-light-blue {
+//  color: #1B91FF;
+//}
+//.highlight-light-red {
+//  color: #FF2C2D;
+//}

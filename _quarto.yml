@@ -1,0 +1,11 @@
+project:
+  type: website
+  output-dir: docs
+  resources:
+  - shinylive-sw.js
+  
+website:  
+  repo-url: https://github.com/falkcarl/h0test
+  repo-actions: [issue]
+  title: "Hypothesis Testing"
+

@@ -1,0 +1,3159 @@
+---
+title: "Hypothesis Testing and $p$-Values"
+format:
+  revealjs:
+    theme: [simple, customtheme.scss]   
+    navigation-mode: vertical
+    height: 800
+server: shiny
+slide-number: true
+---
+
+```{r}
+#| echo: false
+library(ggplot2)
+library(shiny)
+library(plotly)
+library(bslib) #For switch inputs
+library(kableExtra)
+
+theme_minimalism <- function(base_size = 20) {
+  theme_minimal(base_size = base_size) + # ggplot's minimal theme hides many unnecessary features of plot
+    theme(
+      # make modifications to the theme
+      panel.grid.major.y = element_blank(), # hide major grid for y axis
+      panel.grid.minor.y = element_blank(), # hide minor grid for y axis
+      panel.grid.major.x = element_blank(), # hide major grid for x axis
+      panel.grid.minor.x = element_blank(), # hide minor grid for x axis
+      #text=element_text(size=14),           # font aesthetics
+      #axis.text=element_text(size=12),
+      #axis.title=element_text(size=14,face="bold"))
+      axis.title = element_text(face = "bold")
+    )
+}
+```
+
+# Navigation of this module {.h2}
+
+- Questions
+    - Answers to some questions will be sequentially revealed
+    - Think about the answer; Example:
+
+::: {.fragment}
+
+- What is 2 + 2?
+
+:::
+
+:::{.fragment}
+$$2 + 2 = 4$$
+:::
+
+# Navigation of this module {.h2}
+
+:::{.fragment}
+- Scrolling
+    - To advance most slides, scroll to the right
+    - For more depth for some topics or learning checks, you can scroll down
+:::
+
+:::{.fragment}
+- Plots
+    - If any plots look like a strange size or cut-off along the edges, [try refreshing the page in your web browser]{style="color: blue;"}. Other buttons you may see might not  behave as expected.
+:::
+
+# Main learning goals {.h2}
+
+By completing this module, it is hoped that students can:
+
+- Interpret a $p$-value in the context of null hypothesis significance testing
+- Understand the difference between $p$-values and $\alpha$
+- Understand the correspondence between a $p$-value and an obtained test statistic
+
+This module does not yet provide complete coverage of:
+
+- Alternatives to $p$-values or null hypothesis significance testing
+
+# Pre-Requisite Knowledge {.h2}
+
+This module assumes some prior knowledge of:
+
+-   Sampling distributions and the central limit theorem
+-   Normal distributions
+-   Standardized scores or Z-scores
+-   Basics of hypothesis testing
+
+A refresher of some of these concepts is attempted <!--(probability, standardized scores or z-scores).-->
+
+
+
+# Research Question {.h2 auto-animate="true"}
+
+Researchers studying quality of life are often interested in [well-being]{style="color: blue;"}, an overall rating of one’s emotional, physical, and social health.
+
+- We obtain a simple random sample of $n=30$ well-being scores from university students.
+- Scores range from 0 to 100. Higher scores indicate better well-being.
+- Assume a known population variance: $\sigma^2 = 25$
+
+[Research question]{style="color: blue;"}: Does the population of university students have a mean well-being score different than 50?
+
+# Research Question {.h2 auto-animate="true"}
+
+[Research question]{style="color: blue;"}: Does the population of university students have a mean well-being score different than 50?
+
+::: fragment
+- How can we write the null and alternative hypothesis?
+:::
+
+::: fragment
+$$H_0: \mu = 50$$ $$H_a: \mu \ne 50$$
+:::
+
+# Research Question {.h2}
+
+[Research question]{style="color: blue;"}: Does the population of university students have a mean well-being score equal to 50?
+
+Suppose with $n=30$, we obtain $\bar{x} = 52$
+
+::: fragment
+- Is $\bar{x} = 52$ equal to the population mean?
+:::
+
+::: fragment
+No, but it is an *estimate* of the population mean for university students
+:::
+
+# Research Question {.h2 auto-animate="true"}
+
+::: {.fragment fragment-index=1}
+- How can we use inferential statistics to help answer the research question?
+:::
+
+::::{.r-stack}
+
+::: {.fragment .fade-in-then-out fragment-index=2}
+
+- We can compare $\bar{x} = 52$ to the sampling distribution of the mean under $H_0$
+- This distribution assumes:
+    - $n=30$ (our sample size)
+    - $\mu = 50$ (the mean under $H_0$)
+    - $\sigma^2 = 25$ (the assumed population variance)
+
+:::
+
+::: {.fragment .fade-in fragment-index=3}
+- To understand this distribution may require:
+    - Knowledge of sampling distributions and the central limit theorem
+    - (Standard) Normal distributions
+    - Standard scores (or Z-scores)
+
+:::
+
+::::
+
+# Review: Sampling distributions
+
+Scroll down for a review of sampling distributions, or advance to the right to skip
+
+## Imagine $\mu = 50$ and $\sigma^2 = 25$ {.smaller}
+
+::::: r-stack
+::: {.fragment .fade-out fragment-index="1"}
+If true, pretend we can do the following:
+
+1.  Obtain a sample of $n=30$ and record the mean well-being score.
+2.  Repeat Step 1 many (e.g., ten-thousand) times.
+3.  Plot the distribution of the sample means:
+:::
+
+::: {.fragment .fade-in fragment-index="1"}
+-   What special name does this distribution have?
+
+[Sampling distribution of the mean]{.fragment fragment-index="2"}
+
+-   Was this distribution created assuming $H_0$ is true?
+
+[Yes, under this thought experiment, we assumed $\mu = 50$; its standard deviation (i.e., standard error) is $\sqrt{25/30} \approx .913$]{.fragment fragment-index="3"}
+:::
+:::::
+
+```{r, out.height="50%"}
+set.seed(1234)
+dat <- round(rnorm(10000, 50, sqrt(25 / 30)), 1)
+
+ggplot(
+  data = data.frame(x = dat),
+  aes(
+    x,
+    color = "Distribution of sample means",
+    fill = "Distribution of sample means"
+  )
+) +
+  geom_histogram(binwidth = .1) +
+  xlab("Well-Being Score") +
+  ylab("Count") +
+  scale_color_manual("Legend", values = c("#b2df8a")) +
+  scale_fill_manual("Legend", values = c("#b2df8a")) +
+  theme_bw(base_size = 20)
+# sum(dat>52) 129
+# 129/10000 ~ 1.29%
+```
+
+## Sampling distribution {.smaller}
+
+-   Suppose we want to know how many sample means are above 52. How can we know?
+
+[Count the number of sample means with a well-being score above 52. In this case, there are 129 out of 10,000 sample means above 52. We can represent this number as a percentage (1.29%) or proportion (.0129).]{.fragment fragment-index="1"}
+
+::::::::{.r-stack}
+::: {.fragment .fade-out fragment-index="1"}
+```{r, out.height="50%"}
+ggplot(
+  data = data.frame(x = dat),
+  aes(x, color = "Sample means", fill = "Sample means")
+) +
+  geom_histogram(binwidth = .1) +
+  xlab("Well-Being Score") +
+  ylab("Count") +
+  scale_color_manual("Legend", values = c("#b2df8a")) +
+  scale_fill_manual("Legend", values = c("#b2df8a")) +
+  theme_bw(base_size = 20)
+```
+:::
+
+::: {.fragment .fade-in fragment-index="1"}
+```{r, out.height="50%"}
+sampdist <- data.frame(x = dat)
+#sampdist$x <- round(sampdist$x,0)
+sampdist <- sampdist %>%
+  dplyr::mutate(above60 = ifelse(x > 52, "Above 52", "Below 52"))
+
+
+ggplot(data = sampdist, aes(x, color = above60, fill = above60)) +
+  geom_histogram(binwidth = .1) +
+  xlab("Well-Being Score") +
+  ylab("Count") +
+  scale_color_manual("Legend", values = c("#1F78B4", "#b2df8a")) +
+  scale_fill_manual("Legend", values = c("#1F78B4", "#b2df8a")) +
+  theme_bw(base_size = 20)
+```
+:::
+::::::::
+
+## Sampling distribution cut-offs
+
+```{r}
+#| panel: fill
+plotOutput(outputId = "sampDistPlot")
+sliderInput("cutoff", "Cut-off:", min = 47, max = 53, value = 52, step = 1)
+```
+
+```{r}
+#| context: server
+library(plotly)
+theme_minimalism <- function(base_size = 20) {
+  theme_minimal(base_size = base_size) + # ggplot's minimal theme hides many unnecessary features of plot
+    theme(
+      # make modifications to the theme
+      panel.grid.major.y = element_blank(), # hide major grid for y axis
+      panel.grid.minor.y = element_blank(), # hide minor grid for y axis
+      panel.grid.major.x = element_blank(), # hide major grid for x axis
+      panel.grid.minor.x = element_blank(), # hide minor grid for x axis
+      #text=element_text(size=14),           # font aesthetics
+      #axis.text=element_text(size=12),
+      #axis.title=element_text(size=14,face="bold"))
+      axis.title = element_text(face = "bold")
+    )
+}
+
+output$sampDistPlot <- renderPlot({
+  lower <- 47
+  upper <- 53
+  mu <- 50
+  #stdev <- 5
+
+  set.seed(1234) #So we get the same results as above
+  dat <- round(rnorm(10000, 50, sqrt(25 / 30)), 1)
+
+  sampdist <- data.frame(x = dat) #Converts the above to a dataframe
+  #sampdist <- sampdist %>% dplyr::mutate(aboveCutoff = ifelse(x > input$cutoff, T,F)) #Adds a column counting if a given value is Above or Below the Sample Mean
+  sampdist <- sampdist %>%
+    dplyr::mutate(
+      aboveCutoff = ifelse(x > input$cutoff, "Above Cut-off", "Below Cut-off")
+    ) #Adds a column counting if a given value is Above or Below the Sample Mean
+  percent <- (length(which(sampdist$aboveCutoff == "Above Cut-off")) / 10000) *
+    100
+
+  ggplot(data = sampdist, aes(x, color = aboveCutoff, fill = aboveCutoff)) +
+    geom_histogram(binwidth = .1) +
+    annotate(
+      "text",
+      x = 51,
+      y = 1200,
+      label = paste0(
+        percent,
+        "% of the distribution \n has a sample mean above ",
+        input$cutoff
+      ),
+      vjust = 1,
+      hjust = 1
+    ) +
+    ylab("Count") +
+    xlab("Well-Being Score") +
+    #Sets the x axis ticks to cover the whole plot
+    scale_x_continuous(
+      limits = c(lower, upper),
+      breaks = seq(round(lower), round(upper), by = 1)
+    ) +
+    #Clears the y-axis ticks
+    scale_color_manual("aboveCutoff", values = c("#1F78B4", "#b2df8a")) +
+    scale_fill_manual("aboveCutoff", values = c("#1F78B4", "#b2df8a")) +
+    scale_y_continuous(breaks = NULL) +
+    theme_bw(base_size = 20) +
+    theme(legend.title = element_blank())
+  #theme_minimalism()
+})
+```
+
+Try adjusting the sample mean cut-off.
+
+## Sampling distribution {.smaller}
+
+-   Assuming the central limit theorem holds, what shape does this distribution have?
+
+::: {.r-stack}
+
+::: {.fragment .fade-in-then-out fragment-index="2"}
+
+[Normal]{style="color: blue;"}. That the sampling distribution of the mean is normal will be useful when we later conduct hypothesis testing.
+
+:::
+
+::: {.fragment .fade-in fragment-index="3"}
+
+[Normal]{style="color: blue;"}. We do not need to hypothetically conduct many experiments. Given the mean and variance of the population, statisticians have figured out the shape of the sampling distribution and the proportion of means above/below any value.
+
+:::
+
+:::
+
+
+::: {.r-stack}
+::: {.fragment .fade-in fragment-index="2"}
+
+```{r, out.height="50%"}
+plot <- ggplot(
+  data = data.frame(x = dat),
+  aes(
+    x,
+    color = "Distribution of sample means",
+    fill = "Distribution of sample means"
+  )
+) +
+  geom_histogram(binwidth = .1) +
+  xlab("Well-Being Score") +
+  ylab("Count") +
+  scale_color_manual("Legend", values = c("#b2df8a", "#b2df8a")) +
+  scale_fill_manual("Legend", values = c("#b2df8a", "#b2df8a")) +
+  theme_bw(base_size = 20)
+
+# *.1 is times bin width
+plot +
+  stat_function(
+    fun = function(x) dnorm(x, mean = 50, sd = sqrt(25 / 30)) * 10000 * .1,
+    geom = "area",
+    linetype = "solid",
+    size = 1.25,
+    fill = NA,
+    color = "black"
+  )
+```
+
+:::
+:::
+
+# Review: Normal distribution
+
+Scroll down for a review of the normal distribution, or advance to the right to skip
+
+## Normal distribution
+
+- A normal distribution is a probability distribution
+    - If scores follow a normal distribution, it tells us the probability of observing certain scores (or ranges of scores)
+- The shape of a normal distribution is fully described by just two numbers:
+    - Mean
+    - Variance (or standard deviation)
+
+## Normal distribution
+
+Try changing the mean and variance to see how the distribution changes:
+
+```{r}
+#| panel: fill
+plotOutput(outputId = "normalDistPlot1")
+sliderInput("normalmean", "Mean:", min = 40, max = 60, value = 50, step = 1)
+sliderInput("normalvar", "Variance:", min = 10, max = 40, value = 25, step = 1)
+```
+
+```{r}
+#| context: server
+output$normalDistPlot1 <- renderPlot({
+  p <- ggplot(data.frame(x = c(25, 75)), aes(x = x)) +
+    xlim(25, 75) +
+    ylim(0, .15) +
+
+    stat_function(
+      fun = dnorm,
+      args = list(mean = input$normalmean, sd = sqrt(input$normalvar)),
+      geom = "area",
+      fill = "#b2df8a"
+    ) +
+    stat_function(
+      fun = dnorm,
+      args = list(mean = input$normalmean, sd = sqrt(input$normalvar))
+    ) +
+
+    labs(x = "\n X", y = "density \n") +
+    theme_bw(base_size = 19)
+  p
+})
+```
+
+
+## Standard normal distribution
+
+:::{.r-stack}
+
+:::{.fragment .fade-out fragment-index="1"}
+
+A standard normal distribution is a special case of the normal distribution with:
+
+- Mean = 0
+- Variance = 1 (or equivalently, standard deviation = 1)
+
+:::
+
+:::{.fragment .fade-in fragment-index="1"}
+
+A standard normal distribution is often referenced in hypothesis testing
+
+- You may have seen a "Z table" that has values of this distribution with the proportion in one or both tails
+- Examples are provided on the next slides
+
+:::
+
+:::
+
+```{r}
+normalzplot <- ggplot(data.frame(x = c(-4, 4)), aes(x = x)) +
+  xlim(-4, 4) +
+  ylim(0, .4) +
+
+  stat_function(
+    fun = dnorm,
+    args = list(mean = 0, sd = 1),
+    geom = "area",
+    fill = "#b2df8a"
+  ) +
+  stat_function(fun = dnorm, args = list(mean = 0, sd = 1)) +
+
+  labs(x = "\n Z", y = "density \n") +
+  theme_bw(base_size = 19) +
+  ggtitle("Standard normal distribution")
+
+normalzplot
+```
+
+## Standard normal distribution
+
+::: r-fit-text
+
+The table below has pairs of values:
+
+- Z: a value along the x-axis of a standard normal distribution
+- prop: the proportion in the [right-hand]{style="color: blue;"} tail of the distribution
+
+```{r}
+Zvals <- seq(-2, 2, by = .1)
+ztable <- data.frame(
+  Z = Zvals,
+  prop = round(1 - pnorm(Zvals), 3)
+)
+kable(
+  cbind(ztable[1:10, ], ztable[11:20, ], ztable[21:30, ], ztable[31:40, ]),
+  digits = 3
+) %>%
+  column_spec(c(2, 4, 6, 8), border_right = TRUE)
+```
+
+Example: 18.4% of the distribution greater than 0.9; thus we can infer that 81.6% of the distribution is less than 0.9.
+:::
+
+## Standard normal distribution
+
+::: r-fit-text
+
+The table below has pairs of values:
+
+- Z: a value along the x-axis of a standard normal distribution
+- prop: the proportion in the [left-hand tail]{style="color: blue;"} of the distribution
+
+```{r}
+Zvals <- seq(-2, 2, by = .1)
+ztable <- data.frame(
+  Z = Zvals,
+  prop = round(pnorm(Zvals), 3)
+)
+kable(
+  cbind(ztable[1:10, ], ztable[11:20, ], ztable[21:30, ], ztable[31:40, ]),
+  digits = 3
+) %>%
+  column_spec(c(2, 4, 6, 8), border_right = TRUE)
+```
+
+Example: 81.6% of the distribution less than 0.9; thus we can infer that 18.4% of the distribution is greater than 0.9.
+:::
+
+## Standard normal distribution
+
+To visualize Z values and the proportion in the tail, change the values or tail below:
+
+```{r}
+#| panel: fill
+plotOutput(outputId = "normalDistPlot3")
+```
+
+::::{.columns}
+
+:::{.column width="50%"}
+
+```{r}
+numericInput(
+  "normalcutoff2",
+  "Z cutoff value:",
+  min = -3,
+  max = 3,
+  value = 1,
+  step = .05
+)
+```
+
+:::
+
+:::{.column width="50%"}
+
+```{r}
+radioButtons(
+  "normaltail2",
+  "Choose a tail:",
+  choices = c("Upper Tail", "Lower Tail")
+)
+```
+
+:::
+
+::::
+
+```{r}
+#| context: server
+output$normalDistPlot3 <- renderPlot({
+  prop <- ifelse(
+    input$normaltail2 == "Upper Tail",
+    round(pnorm(input$normalcutoff2, lower.tail = FALSE), 3),
+    round(pnorm(input$normalcutoff2, lower.tail = TRUE), 3)
+  )
+
+  p <- ggplot(data.frame(x = c(-4, 4)), aes(x = x)) +
+    xlim(-4, 4) +
+    ylim(0, .5) +
+
+    stat_function(fun = dnorm)
+
+  if (input$normaltail2 == "Upper Tail") {
+    p <- p +
+      stat_function(
+        fun = dnorm,
+        geom = "area",
+        fill = "#b2df8a",
+        xlim = c(-4, input$normalcutoff2)
+      ) +
+      stat_function(
+        fun = dnorm,
+        geom = "area",
+        fill = "#1F78B4",
+        xlim = c(input$normalcutoff2, 4)
+      ) +
+      geom_text(label = paste0("Proportion: ", prop), x = 3, y = .3)
+  } else if (input$normaltail2 == "Lower Tail") {
+    p <- p +
+      stat_function(
+        fun = dnorm,
+        geom = "area",
+        fill = "#1F78B4",
+        xlim = c(-4, input$normalcutoff2)
+      ) +
+      stat_function(
+        fun = dnorm,
+        geom = "area",
+        fill = "#b2df8a",
+        xlim = c(input$normalcutoff2, 4)
+      ) +
+      geom_text(label = paste0("Proportion: ", prop), x = -3, y = .3)
+  }
+
+  p <- p +
+    geom_vline(xintercept = input$normalcutoff2, color = "black") +
+    labs(x = "\n z", y = "density \n") +
+    theme_bw(base_size = 22) +
+    geom_text(
+      label = paste0("Cutoff: ", input$normalcutoff2),
+      x = input$normalcutoff2 - .7,
+      y = .45
+    )
+
+  p
+})
+```
+
+## Learning check
+
+Based on either a Z-table or the app on the slide above...
+
+:::{.fragment}
+- What proportion of scores are above Z = 1.30?
+:::
+
+:::{.fragment}
+Answer: .097 or 9.7%
+:::
+
+:::{.fragment}
+- What proportion of scores are below Z = -1.20?
+:::
+
+:::{.fragment}
+Answer: .115 or 11.5%
+:::
+
+:::{.fragment}
+- What proportion of scores are between Z = -1.8 and Z = 1.8?
+:::
+
+:::{.fragment}
+Answer: This one is a little more challenging. Recall that proportions range from 0 to 1; the proportion of the entire distribution is equal to 1. Since .036 is less than Z = -1.8, and .036 is above Z = 1.8, then the proportion between these two values is: 1 - .036 - .036 = .928.
+
+:::
+
+# Review: Standardized (Z) scores
+
+Scroll down for a review of standardized (Z) scores, or advance to the right to skip
+
+<!--
+## Standardizing the sample mean
+
+Suppose we obtain a sample mean of $\bar{x} = 52$
+
+-  Is this an extreme mean or is it likely to occur under $H_0$?
+
+<!--How does this compare to the sampling distribution under $H_0$?-->
+
+<!--
+One way to gain some insight into these questions is to standardize the sample mean
+
+- But first, let's back up to the concept of a standardized score with an example...
+-->
+
+## Standardizing a single score
+
+What if we sample a single observation and obtain a score of $X = 58$?
+
+- Is that a large value? A small value?
+
+If we knew how $X = 58$ compared to other scores, we could answer such questions
+
+- Standardized scores, or Z-scores, can help us compare $X=58$ to some distribution of other scores
+
+## Standardized (Z) scores
+
+To compute a Z-score, we need to know something about the distribution of other scores:
+
+- The mean
+- The standard deviation (or variance)
+
+The score can then be standardized:
+
+\begin{align*}
+Z = \frac{\text{score - mean}}{\text{standard deviation}}
+\end{align*}
+
+## Standardized (Z) scores
+
+As an example, pretend:
+
+- $X = 58$
+- We compare $X$ to a distribution of scores with $\text{mean} = 50$ and $\text{standard deviation} = 5$
+
+Then,
+
+\begin{align*}
+Z = \frac{\text{score - mean}}{\text{standard deviation}} = \frac{58-50}{5} = 1.6
+\end{align*}
+
+To interpret the Z-score for this observation, we can say that $X$ is 1.6 standard deviations above the mean of the other scores
+
+<!-- Try computing some other z-scores? -->
+
+## Standardizing a normal distribution
+
+Interpreting Z-scores is easier if the entire distribution of other scores follows a normal distribution
+
+- We can reference a Z-table or an app that tells us the proportion of scores below or above a particular Z-score
+
+## Standard normal distribution
+
+To visualize Z values and the proportion in the tail, change the values or tail below:
+
+```{r}
+#| panel: fill
+plotOutput(outputId = "normalDistPlot2")
+```
+
+::::{.columns}
+
+:::{.column width="50%"}
+
+```{r}
+numericInput(
+  "normalcutoff",
+  "Z cutoff value:",
+  min = -3,
+  max = 3,
+  value = 1,
+  step = .05
+)
+```
+
+:::
+
+:::{.column width="50%"}
+
+```{r}
+radioButtons(
+  "normaltail",
+  "Choose a tail:",
+  choices = c("Upper Tail", "Lower Tail")
+)
+```
+
+:::
+
+::::
+
+```{r}
+#| context: server
+output$normalDistPlot2 <- renderPlot({
+  prop <- ifelse(
+    input$normaltail == "Upper Tail",
+    round(pnorm(input$normalcutoff, lower.tail = FALSE), 3),
+    round(pnorm(input$normalcutoff, lower.tail = TRUE), 3)
+  )
+
+  p <- ggplot(data.frame(x = c(-4, 4)), aes(x = x)) +
+    xlim(-4, 4) +
+    ylim(0, .5) +
+
+    stat_function(fun = dnorm)
+
+  if (input$normaltail == "Upper Tail") {
+    p <- p +
+      stat_function(
+        fun = dnorm,
+        geom = "area",
+        fill = "#b2df8a",
+        xlim = c(-4, input$normalcutoff)
+      ) +
+      stat_function(
+        fun = dnorm,
+        geom = "area",
+        fill = "#1F78B4",
+        xlim = c(input$normalcutoff, 4)
+      ) +
+      geom_text(label = paste0("Proportion: ", prop), x = 3, y = .3)
+  } else if (input$normaltail == "Lower Tail") {
+    p <- p +
+      stat_function(
+        fun = dnorm,
+        geom = "area",
+        fill = "#1F78B4",
+        xlim = c(-4, input$normalcutoff)
+      ) +
+      stat_function(
+        fun = dnorm,
+        geom = "area",
+        fill = "#b2df8a",
+        xlim = c(input$normalcutoff, 4)
+      ) +
+      geom_text(label = paste0("Proportion: ", prop), x = -3, y = .3)
+  }
+
+  p <- p +
+    geom_vline(xintercept = input$normalcutoff, color = "black") +
+    labs(x = "\n z", y = "density \n") +
+    theme_bw(base_size = 22) +
+    geom_text(
+      label = paste0("Cutoff: ", input$normalcutoff),
+      x = input$normalcutoff - .7,
+      y = .45
+    )
+
+  p
+})
+```
+
+## Learning check
+
+::: {.fragment}
+- What proportion of scores from a normal distribution are above 1.6?
+:::
+
+::: {.fragment}
+Answer: 0.055 or 5.5% of scores are above Z = 1.6
+:::
+
+::: {.fragment}
+- What Z score would be obtained for $X = 45$ with $\text{mean} = 50$ and $\text{Standard deviation} = 10$?
+- What proportion of scores from a normal distribution are below this value?
+:::
+
+::: {.fragment}
+Answer: $Z = \frac{45-50}{10} = -.5$, with .309 or 30.9% of scores below this value
+:::
+
+<!--
+## Standardizing the sample mean
+
+Knowing our sample mean of $\bar{x} = 62$,
+
+our standard deviation of $\sigma = 25$, and our $H_0$ mean of $\mu = 0$, we can standardize our sample mean via a simple formula:
+
+$$ Z = \frac{ \bar{x} - \mu}{ \sigma } = \frac{62 - 0}{25} =  2.4 $$
+
+A Z-score of 2.4 indicates that our observed sample mean is 2.4 standard deviations above the H0 mean.
+-->
+
+```{r}
+#| fig-align: center
+#| eval: false
+plot1 <- ggplot(data = data.frame(x = c(-4:4)), aes(x)) +
+  stat_function(
+    fun = dnorm,
+    args = list(mean = 0, sd = 1),
+    geom = "area",
+    linetype = "solid",
+    size = 1.25,
+    fill = NA,
+    aes(color = "Null Distribution"),
+    xlim = c(-4, 4)
+  ) +
+  scale_y_continuous(breaks = NULL) +
+  ylab("") +
+  xlab("Well-Being Score") +
+  scale_colour_manual("Legend", values = c("#b2df8a")) +
+  theme_minimalism()
+ggplotly(plot1) |> layout(legend = list(x = 0.9, y = 0.9))
+```
+
+<!--
+## Standardized (Z) distributions {.smaller}
+
+In addition to the our sample mean, we treat the null distribution as being standardized as well
+-->
+
+<!--
+The mean of the standardized (normal) distribution is $\mu = 0$, and its standard deviation is $\sigma = 1$
+
+Note that even though the values have changed, the shape of the distribution remains the same.
+-->
+
+## Unstandardized to Standardized
+
+Standardization does not change the relative order of a set of scores
+
+To see this, the app on the next slide
+
+- Simulates 20,000 values for any chosen mean and standard deviation
+- Unstandardized scores are on the left
+- Standardized scores are on the right
+
+## Unstandardized to Standardized
+
+::::{.columns}
+
+::: {.column width="50%"}
+
+```{r}
+#| panel: fill
+plotOutput(outputId = "zScorePlot2")
+```
+
+:::
+
+::: {.column width="50%"}
+```{r}
+#| panel: fill
+plotOutput(outputId = "zScorePlot3")
+```
+:::
+
+::::
+
+```{r}
+#| panel: fill
+sliderInput(
+  "mu2",
+  "Distribution Mean",
+  min = 40,
+  max = 60,
+  value = 50,
+  step = 1
+)
+sliderInput(
+  "stdev2",
+  "Distribution SD",
+  min = 4,
+  max = 6,
+  value = 5,
+  step = .25
+)
+```
+
+```{r}
+#| context: server
+# If we were to simulate the data;
+# alternative is to just use dnorm
+datstd <- reactive({
+  set.seed(runif(1, 1000 + input$mu2 + input$stdev2, 2000))
+  #set.seed(4567)
+  raw = rnorm(20000, mean = input$mu2, sd = input$stdev2)
+  standardized = scale(raw)
+  data.frame(raw, standardized)
+})
+
+output$zScorePlot2 <- renderPlot({
+  lower <- 50 - 3 * input$stdev2
+  upper <- 50 + 3 * input$stdev2
+
+  dat <- datstd()
+  ggplot(
+    data = dat,
+    aes(
+      raw,
+      colour = "Distribution of Sample means",
+      fill = "Distribution of Sample means"
+    )
+  ) +
+    #geom_histogram(bins = length(unique(round(dat$raw,0)))) +
+    geom_histogram(bins = 50) +
+    annotate(
+      "text",
+      x = Inf,
+      y = Inf,
+      label = paste0(
+        "Distribution Mean = ",
+        input$mu2,
+        " \n Distribution SD = ",
+        input$stdev2
+      ),
+      vjust = 1,
+      hjust = 1
+    ) +
+    ylab("Count") +
+    xlab("Well-Being Score") +
+    #Sets the x axis ticks to cover the whole plot
+    scale_x_continuous(
+      limits = c(lower, upper),
+      breaks = seq(round(lower), round(upper), by = input$stdev2)
+    ) +
+    scale_colour_manual("Legend", values = c("#b2df8a")) +
+    scale_fill_manual("Legend", values = c("#b2df8a")) +
+    #Clears the y-axis ticks
+    scale_y_continuous(breaks = NULL) +
+    theme_minimalism() +
+    theme(legend.position = "none") +
+    xlim(25, 75) +
+    ylim(0, 2200)
+})
+
+output$zScorePlot3 <- renderPlot({
+  lower <- -3
+  upper <- 3
+  dat <- datstd()
+  ggplot(
+    data = dat,
+    aes(
+      standardized,
+      colour = "Distribution of (Standardized) \n Sample means",
+      fill = "Distribution of (Standardized) \n Sample means"
+    )
+  ) +
+    #geom_histogram(bins = length(unique(round(dat$raw,0)))) +
+    geom_histogram(bins = 50) +
+    annotate(
+      "text",
+      x = Inf,
+      y = Inf,
+      label = paste0("Distribution Mean = ", 0, " \n Distribution SD = ", 1),
+      vjust = 1,
+      hjust = 1
+    ) +
+    #Clears the y-axis label
+    ylab("Count") +
+    xlab("Well-Being Score (Standardized)") +
+    #Sets the x axis ticks to cover the whole plot
+    scale_x_continuous(
+      limits = c(lower, upper),
+      breaks = seq(round(lower), round(upper), by = 1)
+    ) +
+    #Clears the y-axis ticks
+    scale_y_continuous(breaks = NULL) +
+    scale_colour_manual("Legend", values = c("#b2df8a")) +
+    scale_fill_manual("Legend", values = c("#b2df8a")) +
+    theme_minimalism() +
+    theme(legend.position = "none") +
+    ylim(0, 2200)
+})
+```
+
+<!-- TODO: Could have above interactive plot have corresponding cut-offs for both distributions, with proportion in tail-->
+
+## Unstandardized to Standardized
+
+:::{.fragment}
+- Regardless of the mean and standard deviation of the unstandardized scores, what will the mean and standard deviation be for the standardized scores?
+:::
+
+:::{.fragment}
+The standardized distribution will always have a mean of 0 and standard deviation of 1
+:::
+
+# Sampling distribution of $\bar{x}$ under $H_0$ {.h2}
+
+:::{.fragment}
+
+- Under $H_0: \mu = 50$
+    - The [mean]{style="color: blue;"} of the sampling distribution is 50
+
+:::
+
+:::{.fragment}
+
+- With assumed $\sigma^2 = 25$ in the population and $n=30$
+    - The [standard deviation]{style="color: blue;"} of the sampling distribution is $\sqrt{25/n} = 5/\sqrt{30} \approx .913$
+
+:::
+
+:::{.fragment}
+
+- If the assumptions of the central limit theorem hold...
+    - This distribution is [normal]{style="color: blue;"}
+
+:::
+
+# Sampling distribution of $\bar{x}$ under $H_0$ {.h2}
+
+```{r}
+#| fig-align: center
+plotsampdist <- ggplot(data = data.frame(x = c(45:55)), aes(x)) +
+  stat_function(
+    fun = dnorm,
+    args = list(mean = 50, sd = sqrt(25 / 30)),
+    geom = "area",
+    linetype = "solid",
+    size = 1.25,
+    fill = NA,
+    aes(color = "Null Distribution"),
+    xlim = c(45, 55)
+  ) +
+  scale_y_continuous(breaks = NULL) +
+  ylab("") +
+  xlab("Well-Being Score") +
+  scale_colour_manual("Legend", values = c("#b2df8a")) +
+  theme_minimalism() +
+  theme(legend.position = "none")
+plotsampdist
+#ggplotly(plotsampdist) |> layout(legend = list(x = 0.9, y = 0.9))
+```
+
+# Standardizing the sampling distribution
+
+We will work with a standardized version of the sampling distribution under $H_0$
+
+::: {.fragment .fade-in fragment-index="1"}
+For short, call this the [null distribution]{.fragment .highlight-blue fragment-index="1"}
+:::
+
+:::: {.columns}
+
+:::{.column width="50%"}
+
+```{r}
+#| fig-align: center
+plotsampdist <- ggplot(data = data.frame(x = c(48:54)), aes(x)) +
+  stat_function(
+    fun = dnorm,
+    args = list(mean = 50, sd = sqrt(25 / 30)),
+    geom = "area",
+    linetype = "solid",
+    size = 1.25,
+    fill = NA,
+    aes(color = "Null Distribution"),
+    xlim = c(47, 53)
+  ) +
+  scale_y_continuous(breaks = NULL) +
+  ylab("") +
+  xlab("Well-Being Score") +
+  scale_colour_manual("Legend", values = c("#b2df8a")) +
+  theme_minimalism(base_size = 25) +
+  theme(legend.position = "none")
+plotsampdist + ggtitle("Unstandardized null distribution")
+#ggplotly(plotsampdist) |> layout(legend = list(x = 0.9, y = 0.9))
+```
+
+:::
+
+:::{.column width="50%"}
+
+```{r}
+#| fig-align: center
+plotsampdiststd <- ggplot(data = data.frame(x = c(-3:3)), aes(x)) +
+  stat_function(
+    fun = dnorm,
+    args = list(mean = 0, sd = 1),
+    geom = "area",
+    linetype = "solid",
+    size = 1.25,
+    fill = NA,
+    aes(color = "Null Distribution"),
+    xlim = c(-3, 3)
+  ) +
+  scale_y_continuous(breaks = NULL) +
+  ylab("") +
+  xlab("Standardized Well-Being Score") +
+  scale_colour_manual("Legend", values = c("#b2df8a")) +
+  theme_minimalism(base_size = 25) +
+  theme(legend.position = "none")
+plotsampdiststd + ggtitle("Standardized null distribution")
+#ggplotly(plotsampdiststd)  |> layout(legend = list(x = 0.9, y = 0.9))
+```
+
+:::
+
+::::
+
+
+# Standardizing the sample mean
+
+We also standardized the sample mean, $\bar{x} = 52$, with respect to the mean and standard deviation (i.e., standard error) of the null distribution:
+
+\begin{align*}
+Z = \frac{\text{value} - \text{distribution mean}}{\text{standard deviation}} = \frac{52 - 50}{.913} = 2.19
+\end{align*}
+
+:::{.fragment}
+$Z = 2.19$ is the [obtained test statistic]{style="color: blue;"} for our sample
+:::
+
+# The Null Distribution {.h2}
+
+::: {.center}
+
+```{r}
+#| fig-align: center
+plot1 <- ggplot(data = data.frame(x = c(-4:4)), aes(x)) +
+  stat_function(
+    fun = dnorm,
+    args = list(mean = 0, sd = 1),
+    geom = "area",
+    linetype = "solid",
+    size = 1.25,
+    fill = NA,
+    aes(color = "Null Distribution"),
+    xlim = c(-4, 4)
+  ) +
+  scale_y_continuous(breaks = NULL) +
+  ylab("") +
+  xlab("Standardized Well-Being Score") +
+  scale_colour_manual("Legend", values = c("#b2df8a")) +
+  theme_minimalism()
+plot1
+#ggplotly(plot1) |> layout(legend = list(x = 0.9, y = 0.9))
+```
+
+:::
+
+This is the Null Sampling Distribution - what the sampling distribution would look like if $H_0$ were true.
+
+Note: If this plot or any subsequent plots look odd, try refreshing the page in your web browser.
+
+# The Alternative Distribution {.h2}
+
+::: {.center}
+
+```{r}
+#| fig-align: center
+#ggplotly(
+
+plot2 <- ggplot(data = data.frame(x = c(-3:6)), aes(x)) +
+  stat_function(
+    fun = dnorm,
+    args = list(mean = 0, sd = 1),
+    geom = "area",
+    linetype = "solid",
+    fill = NA,
+    size = 1.25,
+    aes(color = "Null Distribution"),
+    xlim = c(-3, 3)
+  ) +
+  stat_function(
+    fun = dnorm,
+    args = list(mean = 3, sd = 1),
+    geom = "area",
+    linetype = "dotted",
+    size = 1.25,
+    fill = NA,
+    aes(color = "Alternative Distribution"),
+    xlim = c(0, 6)
+  ) +
+  scale_x_continuous(limits = c(-3, 6), breaks = seq(-2, 6, by = 1)) +
+  scale_y_continuous(breaks = NULL) +
+  ylab("") +
+  xlab("Standardized Well-Being Score") +
+  scale_colour_manual("Legend", values = c("#a6cee3", "#b2df8a")) +
+  theme_minimalism()
+
+#) |>
+#  layout(legend = list(x = 0.9, y = 0.9))
+```
+
+:::
+
+This is an alternative distribution - what the sampling distribution would look like if the population mean were higher than under $H_0$.
+
+# The Alternative Distribution {.h2}
+
+::: {.center}
+
+```{r}
+#| fig-align: center
+#ggplotly(
+plot2 +
+  stat_function(
+    fun = dnorm,
+    args = list(mean = 3, sd = 1),
+    geom = "area",
+    linetype = "dotted",
+    size = 1.25,
+    fill = NA,
+    alpha = .25,
+    aes(color = "Alternative Distribution"),
+    xlim = c(-3, 6)
+  )
+#)
+```
+
+:::
+
+But, in practice we do not know the true population distribution.
+
+# The Alternative Distribution(s) {.h2}
+
+::: {.center}
+
+```{r}
+#| fig-align: center
+#ggplotly(
+plot2 <- ggplot(data = data.frame(x = c(-3:6)), aes(x)) +
+  stat_function(
+    fun = dnorm,
+    args = list(mean = 0, sd = 1),
+    geom = "area",
+    linetype = "solid",
+    fill = NA,
+    size = 1.25,
+    aes(color = "Null Distribution"),
+    xlim = c(-3, 6)
+  ) +
+  stat_function(
+    fun = dnorm,
+    args = list(mean = -1, sd = 1),
+    geom = "area",
+    linetype = "dotted",
+    size = 1.25,
+    fill = NA,
+    alpha = .25,
+    aes(color = "Alternative Distribution"),
+    xlim = c(-3, 6)
+  ) +
+  stat_function(
+    fun = dnorm,
+    args = list(mean = 1, sd = 1),
+    geom = "area",
+    linetype = "dotted",
+    size = 1.25,
+    fill = NA,
+    alpha = .25,
+    aes(color = "Alternative Distribution"),
+    xlim = c(-3, 6)
+  ) +
+  stat_function(
+    fun = dnorm,
+    args = list(mean = 2, sd = 1),
+    geom = "area",
+    linetype = "dotted",
+    size = 1.25,
+    fill = NA,
+    alpha = .25,
+    aes(color = "Alternative Distribution"),
+    xlim = c(-3, 6)
+  ) +
+  stat_function(
+    fun = dnorm,
+    args = list(mean = 3, sd = 1),
+    geom = "area",
+    linetype = "dotted",
+    size = 1.25,
+    fill = NA,
+    alpha = .25,
+    aes(color = "Alternative Distribution"),
+    xlim = c(-3, 6)
+  ) +
+  stat_function(
+    fun = dnorm,
+    args = list(mean = 4, sd = 1),
+    geom = "area",
+    linetype = "dotted",
+    size = 1.25,
+    fill = NA,
+    alpha = .25,
+    aes(color = "Alternative Distribution"),
+    xlim = c(-3, 6)
+  ) +
+  stat_function(
+    fun = dnorm,
+    args = list(mean = 5, sd = 1),
+    geom = "area",
+    linetype = "dotted",
+    size = 1.25,
+    fill = NA,
+    alpha = .25,
+    aes(color = "Alternative Distribution"),
+    xlim = c(-3, 6)
+  ) +
+  scale_x_continuous(limits = c(-3, 6), breaks = seq(-3, 6, by = 1)) +
+  scale_y_continuous(breaks = NULL) +
+  ylab("") +
+  xlab("Standardized Well-Being Score") +
+  scale_colour_manual("Legend", values = c("#a6cee3", "#b2df8a")) +
+  theme_minimalism()
+#) |>
+#  layout(legend = list(x = 0.9, y = 0.9))
+```
+
+:::
+
+To further complicate things, there are an infinite number of *possible* alternative distributions
+
+# The Null Distribution {.h2}
+
+::: {.center}
+
+```{r}
+#| fig-align: center
+plot1 <- ggplot(data = data.frame(x = c(-4:4)), aes(x)) +
+  stat_function(
+    fun = dnorm,
+    args = list(mean = 0, sd = 1),
+    geom = "area",
+    linetype = "solid",
+    size = 1.25,
+    fill = NA,
+    aes(color = "Null Distribution"),
+    xlim = c(-4, 4)
+  ) +
+  scale_y_continuous(breaks = NULL) +
+  ylab("") +
+  xlab("Standardized Well-Being Score") +
+  scale_colour_manual("Legend", values = c("#b2df8a")) +
+  theme_minimalism()
+plot1
+#ggplotly(plot1) |> layout(legend = list(x = 0.9, y = 0.9))
+```
+
+:::
+
+For this reason, it is typical to conduct inference by just considering the null distribution.
+
+# Test your Knowledge
+
+Scroll down to test your knowledge of Null and Alternative Hypotheses.
+
+Alternatively, advance to continue with the module.
+
+## Null & Alternative Hypotheses
+
+::: {.fragment fragment-index="1"}
+-   What do the null and alternative hypotheses represent?
+:::
+
+::: {.fragment .fade-in fragment-index="2"}
+In this example, the null hypothesis ($H_0$) represents the idea that the population of university students have mean well-being scores of 50; any difference between our sample mean and the hypothesized value of 50 could be just due to chance.
+
+The alternative hypothesis ($H_1$ or $H_a$) represents the idea that the population of university students have mean well-being scores that are different from 50. But, the exact mean of university well-being is not specified.
+:::
+
+
+## Null & Alternative Hypotheses
+
+::: {.fragment fragment-index="1"}
+
+-   Why do we rarely know what the true population distribution is?
+
+:::
+
+::: {.fragment fragment-index="2"}
+
+Because any attribute in our population can only be estimated/approximated based on sample data. If we could obtain the entire population's data, then use of inferential statistics is not necessary.
+
+:::
+
+::: {.fragment fragment-index="3"}
+
+-   Why are there an infinite number of alternative distributions?
+
+:::
+
+::: {.fragment fragment-index="4"}
+
+The alternative hypothesis does not specify a specific value for the mean parameter, it only states that the mean is different than that stated under $H_0$.
+
+:::
+
+# The Big Question {.h2}
+
+::: {.center}
+
+```{r}
+#| fig-align: center
+#ggplotly(
+plot1 +
+  geom_vline(xintercept = 2.19, alpha = .5) +
+  annotate(
+    "text",
+    x = 1.5,
+    y = .35,
+    label = paste0("Standardized sample mean \n Z = 2.19")
+  )
+#)
+```
+
+:::
+
+So, how do we know if this sample mean came from the null distribution, or some other distribution?
+
+# Null Hypothesis Significance Testing
+
+::: incremental
+- A common approach to answering this question is *Null Hypothesis Significance Testing*
+
+- Under this approach, we define what values of the sample mean (or test statistic) would be unlikely if $H_0$ were true
+
+:::
+
+```{r}
+# version of plot with lines to likely and unlikely parts
+plot1 +
+  annotate("text", x = 2, y = .25, label = "Unlikely") +
+  annotate("text", x = .75, y = .4, label = "Likely") +
+  annotate("text", x = -2, y = .25, label = "Unlikely") +
+  annotate(
+    "segment",
+    x = 2.1,
+    xend = 2.1,
+    y = .23,
+    yend = .06,
+    arrow = arrow(length = unit(.25, "cm"))
+  ) +
+  annotate(
+    "segment",
+    x = -2.1,
+    xend = -2.1,
+    y = .23,
+    yend = .06,
+    arrow = arrow(length = unit(.25, "cm"))
+  ) +
+  annotate(
+    "segment",
+    x = .75,
+    xend = .5,
+    y = .38,
+    yend = .36,
+    arrow = arrow(length = unit(.25, "cm"))
+  )
+```
+
+# Null Hypothesis Significance Testing
+
+We examine two equivalent ways of conducting null hypothesis significance testing:
+
+
+::: {.fragment}
+1. Compare the critical value of a test statistic (determined in part by $\alpha$) to the obtained test statistic from our sample
+:::
+
+::: {.fragment}
+2. Compare $\alpha$ to the obtained $p$-value
+:::
+
+::: {.fragment}
+Both require choosing $\alpha$
+:::
+
+# α {.h2}
+
+$\alpha$ ("alpha") is the proportion in the tail of the null distribution that we deem as unlikely to occur under $H_0$
+
+:::: {.r-stack}
+
+::: {.fragment .fade-in-then-out}
+- The [critical region]{style="color: blue;"} are values of the null distribution that correspond to $\alpha$
+:::
+
+::: {.fragment}
+Here, our alpha value is set to .05, meaning our critical region covers 5% of the distribution.
+:::
+
+::::
+
+<!--
+We set this probability threshold according to the *alpha* value, which determines a percentage of the distribution in the tail(s) of the distribution.-->
+
+::: {.center}
+
+```{r}
+#| fig-align: center
+twotail <- TRUE # in case we want to switch back to one-tail
+if (twotail) {
+  prop <- .05 / 2
+} else {
+  prop <- .05
+}
+plt <- plot1 +
+  stat_function(
+    fun = dnorm, # The upper critical region
+    args = list(mean = 0, sd = 1),
+    geom = "area",
+    linetype = "solid",
+    fill = "#1f78b4",
+    aes(color = "Critical Region"),
+    xlim = c(qnorm(prop, mean = 0, sd = 1, lower.tail = F), 3)
+  ) +
+  xlab("Standardized Well-being Score") +
+  scale_colour_manual(
+    "Legend",
+    values = c("Null Distribution" = "#b2df8a", "Critical Region" = "#1f78b4")
+  )
+if (twotail) {
+  plt <- plt +
+    stat_function(
+      fun = dnorm, # The lower critical region
+      args = list(mean = 0, sd = 1),
+      geom = "area",
+      linetype = "solid",
+      fill = "#1f78b4",
+      aes(color = "Critical Region"),
+      xlim = c(-3, qnorm(prop, mean = 0, sd = 1, lower.tail = T))
+    )
+}
+
+plt
+#ggplotly(plt)
+```
+
+:::
+
+# Critical value (one-tailed) {.h2}
+
+:::: {.r-stack}
+
+::: {.fragment .fade-in-then-out}
+Every $\alpha$ value has a corresponding *cut-off value* that divides the critical region from the rest of the distribution.
+:::
+
+::: {.fragment .fade-in}
+We often call this cut-off value a [critical value]{style="color: blue;"}  for the test statistic.
+:::
+
+::::
+
+::: {.center}
+
+```{r}
+#| fig-align: center
+plt <- plot1 +
+  #geom_vline(xintercept=2.4, alpha=.5) +
+  geom_vline(xintercept = 1.644854, alpha = .5) +
+  #annotate("text",x=2.4,y=.4, label=paste0("Sample mean = 2.4")) +
+  stat_function(
+    fun = dnorm, # The lower critical region
+    args = list(mean = 0, sd = 1),
+    geom = "area",
+    linetype = "solid",
+    fill = "#1f78b4",
+    aes(color = "Critical Region"),
+    xlim = c(qnorm(.05, mean = 0, sd = 1, lower.tail = F), 3)
+  ) +
+  xlab("Standardized Well-being Score") +
+  scale_colour_manual(
+    "Legend",
+    values = c(
+      "Null Distribution" = "#b2df8a",
+      #"Alternative Distribution"= "#a6cee3",
+      "Critical Region" = "#1f78b4"
+    )
+  ) +
+  #"Power" = "#33a02c"))
+  annotate("text", x = 2.7, y = .15, label = paste0("Cut-off value = 1.65"))
+
+plt
+
+#ggplotly(plt) #|> layout(legend = list(x = 0.9, y = 0.9)))
+```
+
+:::
+
+::: {.fragment}
+
+In this case, 5% of the values under the distribution are greater than or equal to 1.65.
+
+:::
+
+# Critical value (one-tailed)
+
+```{r}
+#| panel: fill
+plotOutput(outputId = "alphaPlot")
+sliderInput("alpha", "α:", min = .01, max = .99, value = .05, step = .01)
+radioButtons(
+  "tails",
+  "Tails:",
+  c("1 Tail (Upper)" = "onetail_upper", "1 Tail (Lower)" = "onetail_lower"),
+  inline = T
+)
+```
+
+```{r}
+#| context: server
+#library(plotly)
+theme_minimalism <- function(base_size = 20) {
+  theme_minimal(base_size = base_size) + # ggplot's minimal theme hides many unnecessary features of plot
+    theme(
+      # make modifications to the theme
+      panel.grid.major.y = element_blank(), # hide major grid for y axis
+      panel.grid.minor.y = element_blank(), # hide minor grid for y axis
+      panel.grid.major.x = element_blank(), # hide major grid for x axis
+      panel.grid.minor.x = element_blank(), # hide minor grid for x axis
+      #text=element_text(size=14),           # font aesthetics
+      #axis.text=element_text(size=12),
+      #axis.title=element_text(size=14,face="bold"))
+      axis.title = element_text(face = "bold")
+    )
+}
+
+output$alphaPlot <- renderPlot({
+  lower <- -3
+  upper <- 3
+  mu <- 0
+  #beta_value <- reactive({pnorm(-qnorm(input$alpha/2,mean=mu)) - pnorm(qnorm(input$alpha/2,mean=-mu))})
+  #power <- 1-beta_value()
+  stdev <- 1
+  critval <- switch(
+    input$tails,
+    "onetail_upper" = reactive({
+      qnorm(input$alpha, mean = 0, sd = 1, lower.tail = F)
+    }),
+    "onetail_lower" = reactive({
+      qnorm(input$alpha, mean = 0, sd = 1)
+    })
+  )
+
+  #critval <- 0 + critval()
+
+  ggplot(data = data.frame(x = c(lower, upper)), aes(x)) +
+    stat_function(
+      fun = dnorm, #The Null Distribution
+      args = list(mean = 0, sd = 1),
+      geom = "area",
+      linetype = "solid",
+      fill = NA,
+      size = 1.25,
+      color = "#b2df8a",
+      xlim = c(lower, upper)
+    ) +
+    stat_function(
+      fun = dnorm, # The critical region
+      args = list(mean = mu, sd = stdev),
+      geom = "area",
+      fill = "#1f78b4",
+      color = "#1f78b4",
+      alpha = .5,
+      xlim = switch(
+        input$tails,
+        {
+          "onetail_lower" = c(
+            lower,
+            qnorm(input$alpha, mean = 0, sd = 1, lower.tail = T)
+          )
+        },
+        "onetail_upper" = c(
+          qnorm(input$alpha, mean = 0, sd = 1, lower.tail = F),
+          upper
+        )
+      )
+    ) +
+    #annotate("text",x=Inf,y=Inf, label = paste0("Power = ", round(power,3)), vjust = 1, hjust = 1) +
+    annotate(
+      "text",
+      x = 2.5,
+      y = .4,
+      label = paste0("Critical Value = ", round(critval(), 3)),
+      vjust = 1,
+      hjust = 1
+    ) +
+    #Clears the y-axis label
+    ylab("") +
+    xlab("Standardized Well-being Score") +
+    #Sets the x axis ticks to cover the whole plot
+    scale_x_continuous(
+      limits = c(lower, upper),
+      breaks = seq(round(lower), round(upper), by = 1)
+    ) +
+    #Clears the y-axis ticks
+    scale_y_continuous(breaks = NULL) +
+    theme_minimalism()
+})
+```
+
+Try adjusting α. How does the critical value change?
+
+Note that typically alpha values are set to .05 or .01.
+
+# Two-tailed tests {.h2}
+
+It's more common not to specify a direction to the hypothesis when conducting a statistical test. We simply wish to test whether a population mean *differs* from $H_0$.
+
+The alternative hypothesis specified at the beginning of this presentation corresponds to this case:
+
+$$H_a: \mu \ne 50$$
+
+In this case, we use a *two-tailed* test.
+
+# $\alpha$, Two-tailed tests
+
+::: {.center}
+
+```{r}
+#| panel: fill
+#ggplotly(
+plot1 +
+  #geom_vline(xintercept=2.4, alpha=.5) +
+  geom_vline(xintercept = 1.96, alpha = .5) +
+  geom_vline(xintercept = -1.96, alpha = .5) +
+  #annotate("text",x=2.4,y=.4, label=paste0("Sample mean = 2.4")) +
+  stat_function(
+    fun = dnorm, # The upper critical region
+    args = list(mean = 0, sd = 1),
+    geom = "area",
+    linetype = "solid",
+    fill = "#1f78b4",
+    aes(color = "Critical Region"),
+    xlim = c(qnorm(.025, mean = 0, sd = 1, lower.tail = F), 3)
+  ) +
+  stat_function(
+    fun = dnorm, # The lower critical region
+    args = list(mean = 0, sd = 1),
+    geom = "area",
+    linetype = "solid",
+    fill = "#1f78b4",
+    aes(color = "Critical Region"),
+    xlim = c(-3, qnorm(.025, mean = 0, sd = 1))
+  ) +
+  scale_colour_manual(
+    "Legend",
+    values = c("Null Distribution" = "#b2df8a", "Critical Region" = "#1f78b4")
+  ) +
+  annotate(
+    "text",
+    x = 1.96,
+    y = .1,
+    label = paste0("Upper Cut-off value = 1.96")
+  ) +
+  annotate(
+    "text",
+    x = -1.96,
+    y = .07,
+    label = paste0("Lower Cut-off value = -1.96")
+  )
+#)
+```
+
+:::
+
+For two tailed-tests, our alpha value represents the *combined* percentage of the distribution in *both* tails of the distribution.
+
+:::: {.r-stack}
+
+::: {.fragment .fade-in-then-out}
+
+Here, our alpha value is .05, so the lower critical region covers 2.5% of the distribution, and the upper critical region covers 2.5% of the distribution.
+
+:::
+
+::: {.fragment}
+
+The critical values dividing the lower and upper 2.5% of the distribution correspond to -1.96 and 1.96.
+
+:::
+
+:::: 
+
+
+# Critical values (two-tailed)
+
+```{r}
+#| panel: fill
+plotOutput(outputId = "alphaPlotTwoTail")
+sliderInput("alpha", "α:", min = .01, max = 1, value = .05, step = .01)
+```
+
+```{r}
+#| context: server
+#library(plotly)
+theme_minimalism <- function(base_size = 20) {
+  theme_minimal(base_size = base_size) + # ggplot's minimal theme hides many unnecessary features of plot
+    theme(
+      # make modifications to the theme
+      panel.grid.major.y = element_blank(), # hide major grid for y axis
+      panel.grid.minor.y = element_blank(), # hide minor grid for y axis
+      panel.grid.major.x = element_blank(), # hide major grid for x axis
+      panel.grid.minor.x = element_blank(), # hide minor grid for x axis
+      #text=element_text(size=14),           # font aesthetics
+      #axis.text=element_text(size=12),
+      #axis.title=element_text(size=14,face="bold"))
+      axis.title = element_text(face = "bold")
+    )
+}
+
+output$alphaPlotTwoTail <- renderPlot({
+  lower <- -3
+  upper <- 3
+  mu <- 0
+  #beta_value <- reactive({pnorm(-qnorm(input$alpha/2,mean=mu)) - pnorm(qnorm(input$alpha/2,mean=-mu))})
+  #power <- 1-beta_value()
+  stdev <- 1
+
+  ggplot(data = data.frame(x = c(lower, upper)), aes(x)) +
+    stat_function(
+      fun = dnorm, #The Null Distribution
+      args = list(mean = 0, sd = 1),
+      geom = "area",
+      linetype = "solid",
+      fill = NA,
+      size = 1.25,
+      color = "#b2df8a",
+      xlim = c(lower, upper)
+    ) +
+    stat_function(
+      fun = dnorm, # The upper critical region
+      args = list(mean = mu, sd = stdev),
+      geom = "area",
+      fill = "#1f78b4",
+      color = "#1f78b4",
+      alpha = .5,
+      xlim = c(qnorm(input$alpha / 2, mean = 0, sd = 1, lower.tail = F), upper)
+    ) +
+    stat_function(
+      fun = dnorm, # The lower critical region
+      args = list(mean = mu, sd = stdev),
+      geom = "area",
+      fill = "#1f78b4",
+      color = "#1f78b4",
+      alpha = .5,
+      xlim = c(lower, qnorm(input$alpha / 2, mean = 0, sd = 1))
+    ) +
+    #annotate("text",x=Inf,y=Inf, label = paste0("Power = ", round(power,3)), vjust = 1, hjust = 1) +
+    annotate(
+      "text",
+      x = 2,
+      y = .2,
+      label = paste0(
+        "Critical Value = +/-",
+        round(qnorm(input$alpha / 2, mean = 0, sd = 1, lower.tail = F), 3)
+      ),
+      vjust = 1,
+      hjust = 1
+    ) +
+    scale_colour_manual(
+      "Legend",
+      values = c("Null Distribution" = "#b2df8a", "Critical Region" = "#1f78b4")
+    ) +
+    #Clears the y-axis label
+    ylab("") +
+    xlab("Well-Being Score") +
+    #Sets the x axis ticks to cover the whole plot
+    scale_x_continuous(
+      limits = c(lower, upper),
+      breaks = seq(round(lower), round(upper), by = 1)
+    ) +
+    #Clears the y-axis ticks
+    scale_y_continuous(breaks = NULL) +
+    theme_minimalism()
+})
+```
+
+Try adjusting α. How does the critical value change?
+
+Note that typically alpha values are set to .05 or .01.
+
+# Components of null hypothesis significance testing
+
+At this point...
+
+- We choose $\alpha$
+- Our choice of $\alpha$ implies a critical value for the null distribution under $H_0$
+
+We do not require looking at the sample data to determine the above values.
+
+# Components of null hypothesis significance testing
+
+Based on the sample data, we can compute...
+
+- The obtained test statistic
+- The $p$-value corresponding to the obtained test statistic
+
+Over then next slides, we show how to perform inference regarding $H_0$ by doing one of the following:
+
+::: {.fragment}
+1. Compare the critical value of a test statistic to the obtained test statistic from our sample
+:::
+
+::: {.fragment}
+2. Compare $\alpha$ to the obtained $p$-value
+:::
+
+# Comparing critical value to obtained test statistic
+
+Since every $\alpha$ corresponds to a particular critical value, we can do inference by comparing the critical value to the obtained test statistic
+
+::: incremental
+-   If the [obtained test statistic is more extreme than its critical value]{style="color: blue;"}...
+    - We [reject $H_0$]{style="color: blue;"} because it is unlikely that this result would be observed if $H_0$ were true
+
+-   If the [obtained test statistic is less extreme than its critical value]{style="color: blue;"}...
+    - We [fail to reject $H_0$]{style="color: blue;"} because this result could reasonably be observed if $H_0$ were true
+
+:::
+
+# Comparing critical value to obtained test statistic
+
+```{r}
+#| fig-align: center
+#ggplotly(
+plot1 +
+  geom_vline(xintercept = 2.19, alpha = .5) +
+  geom_vline(xintercept = 1.644854, alpha = .5) +
+  annotate(
+    "text",
+    x = 2.75,
+    y = .25,
+    label = paste0("Standardized \n sample mean \n Z = 2.19")
+  ) +
+  geom_segment(
+    aes(x = 2.75, y = .18, xend = 2.19, yend = .15),
+    arrow = arrow(length = unit(0.25, "cm"))
+  ) +
+  stat_function(
+    fun = dnorm, # The upper critical region
+    args = list(mean = 0, sd = 1),
+    geom = "area",
+    linetype = "solid",
+    fill = "#1f78b4",
+    aes(color = "Critical Region"),
+    xlim = c(qnorm(.025, mean = 0, sd = 1, lower.tail = F), 3)
+  ) +
+  stat_function(
+    fun = dnorm, # The lower critical region
+    args = list(mean = 0, sd = 1),
+    geom = "area",
+    linetype = "solid",
+    fill = "#1f78b4",
+    aes(color = "Critical Region"),
+    xlim = c(-3, qnorm(.025, mean = 0, sd = 1))
+  ) +
+  xlab("Standardized Well-being Score") +
+  scale_colour_manual(
+    "Legend",
+    values = c(
+      "Null Distribution" = "#b2df8a",
+      #"Alternative Distribution"= "#a6cee3",
+      "Critical Region" = "#1f78b4"
+    )
+  ) +
+  #"Power" = "#33a02c"))
+  annotate(
+    "text",
+    x = 1.96,
+    y = .1,
+    label = paste0("Upper Cut-off value = 1.96")
+  ) +
+  annotate(
+    "text",
+    x = -1.96,
+    y = .07,
+    label = paste0("Lower Cut-off value = -1.96")
+  )
+#) #|> layout(legend = list(x = 0.9, y = 0.9)))
+```
+
+::: {.fragment}
+In this case, the obtained test statistic of $Z = 2.19$ is more extreme than the critical value (when $\alpha=.05$) of $\pm 1.96$. This means we reject $H_0$.
+:::
+
+# Comparing $\alpha$ to the $p$-value
+
+::: incremental
+-   Essentially we ask ourselves: "If $H_0$ is true, what's the probability of getting a sample mean this extreme (or more extreme)?"
+
+-   Equivalently: "If $H_0$ is true, what's the probability of getting an obtained test statistic (e.g., Z) this extreme (or more extreme)?"
+
+- This probability is the [$p$-value]{style="color: blue;"} associated with our test of $H_0$
+
+:::
+
+# Comparing $\alpha$ to a $p$-value
+
+::: incremental
+
+-   If the [$p$-value is smaller than $\alpha$]{style="color: blue;"}...
+    - We [reject $H_0$]{style="color: blue;"} because it is unlikely that this result would be observed if $H_0$ were true
+
+-   If the [$p$-value is greater than $\alpha$]{style="color: blue;"}...
+    - We [fail to reject $H_0$]{style="color: blue;"} because this result could reasonably be observed if $H_0$ were true
+
+:::
+
+# Comparing $\alpha$ to a $p$-value
+
+:::: {.r-stack}
+
+::: {.fragment .fade-in-then-out}
+
+In this case, our observed test statistic is $Z = 2.19$; Only 1.43% or .0143 of the distribution has a score of 2.19 or higher.
+
+:::
+
+::: {.fragment .fade-in-then-out}
+Since we are considering a two-tailed test, we also consider the proportion below $-Z$, or below $Z = -2.19$. This proportion is also 1.43% or .0143.
+:::
+
+::: {.fragment .fade-in}
+The $p$-value is therefore $p = .0143 + .0143 = .0286$. Only 2.85% of the distribution corresponds to a Z statistic as or more extreme than 2.19 or -2.19.
+:::
+
+::::
+
+::: {.center}
+
+```{r}
+#| fig-align: center
+twotail <- TRUE
+
+plt <- plot1 +
+  geom_vline(xintercept = 2.19, alpha = .5) +
+  annotate(
+    "text",
+    x = 1.5,
+    y = .35,
+    label = paste0("Standardized sample mean \n Z = 2.19")
+  ) +
+  stat_function(
+    fun = dnorm, # The p-value
+    args = list(mean = 0, sd = 1),
+    geom = "area",
+    linetype = "solid",
+    fill = "#E69F00",
+    aes(color = "p-value"),
+    #xlim= c(qnorm(.05,mean=0,sd=1,lower.tail=F),3)) +
+    xlim = c(2.19, 3)
+  ) +
+  xlab("Standardized Well-being Score") +
+  scale_colour_manual(
+    "Legend",
+    values = c("Null Distribution" = "#b2df8a", "p-value" = "#E69F00")
+  )
+if (twotail) {
+  plt <- plt +
+    stat_function(
+      fun = dnorm, # The p-value
+      args = list(mean = 0, sd = 1),
+      geom = "area",
+      linetype = "solid",
+      fill = "#E69F00",
+      aes(color = "p-value"),
+      xlim = c(-3, -2.19)
+    ) +
+    geom_vline(xintercept = -2.19, alpha = .5) +
+    annotate("text", x = -1.7, y = .35, label = paste0("-2.19"))
+}
+
+plt
+#ggplotly(plt)
+```
+
+:::
+
+:::: {.r-stack}
+
+::: {.fragment .fade-in-then-out}
+.0286 is the $p$-value associated with our test of $H_0$. It is the proportion beyond the obtained test statistic of $Z=2.19$, two-tailed.
+:::
+
+::: {.fragment}
+Since .0286 is below our $\alpha$ value of .05, we reject $H_0: \mu = 50$ and conclude that the mean of university students is (statistically) significantly different than 50.
+:::
+
+::::
+
+
+
+
+# Remaining questions
+
+For the next few slides, consider the following questions:
+
+- What is the relationship between a $p$-value and its obtained test statistic?
+- What is the relationship between $\alpha$ and its critical value?
+
+- What are the similarities and differences between $\alpha$ and a $p$-value?
+- What are the similarities and differences between a critical value and an obtained test statistic?
+
+
+
+# Change the test statistic and $p$-value
+
+- Suppose $\alpha = .05$ with a critical value of 1.65
+- What happens if the test statistic changes? (As could happen with a different sample mean)
+
+```{r}
+#| panel: fill
+plotOutput(outputId = "sampleMeanPlot1")
+```
+
+:::{.columns}
+
+::: {.column width = "33%"}
+```{r}
+sliderInput(
+  "sampleMean1",
+  "Sample Mean (Standardized):",
+  min = -2.6,
+  max = 2.6,
+  value = 2.4,
+  step = .1
+)
+```
+:::
+
+::: {.column width = "33%"}
+```{r}
+checkboxInput("shadealpha1", "Shade critical region (alpha)", value = TRUE)
+```
+:::
+
+::: {.column width = "33%"}
+```{r}
+checkboxInput("shadep1", "Shade p-value area", value = FALSE)
+```
+:::
+
+:::
+
+```{r}
+#| context: server
+#library(plotly)
+theme_minimalism <- function(base_size = 20) {
+  theme_minimal(base_size = base_size) + # ggplot's minimal theme hides many unnecessary features of plot
+    theme(
+      # make modifications to the theme
+      panel.grid.major.y = element_blank(), # hide major grid for y axis
+      panel.grid.minor.y = element_blank(), # hide minor grid for y axis
+      panel.grid.major.x = element_blank(), # hide major grid for x axis
+      panel.grid.minor.x = element_blank(), # hide minor grid for x axis
+      #text=element_text(size=14),           # font aesthetics
+      #axis.text=element_text(size=12),
+      #axis.title=element_text(size=14,face="bold"))
+      axis.title = element_text(face = "bold")
+    )
+}
+
+output$sampleMeanPlot1 <- renderPlot({
+  twotailed <- TRUE
+  lower <- -3
+  upper <- 3
+  mu <- 0
+  stdev <- 1
+
+  if (twotailed) {
+    prop <- .05 / 2
+  } else {
+    prop <- .05
+  }
+
+  plt <- ggplot(data = data.frame(x = c(lower, upper)), aes(x)) +
+    stat_function(
+      fun = dnorm, #The Null Distribution
+      args = list(mean = 0, sd = 1),
+      geom = "area",
+      linetype = "solid",
+      fill = NA,
+      size = 1.25,
+      color = "#b2df8a",
+      xlim = c(lower, upper)
+    ) +
+    geom_vline(xintercept = input$sampleMean1, alpha = .5) +
+    annotate(
+      "text",
+      x = input$sampleMean1 - .5,
+      y = .28,
+      label = paste0("Standardized sample mean \n Z = ", input$sampleMean1)
+    )
+
+  if (input$shadealpha1) {
+    plt <- plt +
+      stat_function(
+        fun = dnorm, # The critical region
+        args = list(mean = mu, sd = stdev),
+        geom = "area",
+        fill = "#1f78b4",
+        aes(color = "Critical Region (alpha)"),
+        #color="#1f78b4",
+        alpha = .25,
+        xlim = {
+          c(qnorm(prop, mean = 0, sd = 1, lower.tail = F), upper)
+        }
+      )
+    if (twotailed) {
+      plt <- plt +
+        stat_function(
+          fun = dnorm, # The critical region
+          args = list(mean = mu, sd = stdev),
+          geom = "area",
+          fill = "#1f78b4",
+          aes(color = "Critical Region (alpha)"),
+          #color="#1f78b4",
+          alpha = .25,
+          xlim = {
+            c(lower, qnorm(prop, mean = 0, sd = 1, lower.tail = T))
+          }
+        )
+    }
+  }
+
+  if (input$shadep1) {
+    if (twotailed) {
+      plt <- plt +
+        stat_function(
+          fun = dnorm, # The p-value
+          args = list(mean = 0, sd = 1),
+          geom = "area",
+          linetype = "solid",
+          fill = "#E69F00",
+          aes(color = "p-value"),
+          alpha = .35,
+          xlim = c(abs(input$sampleMean1), 3)
+        )
+      plt <- plt +
+        stat_function(
+          fun = dnorm, # The p-value
+          args = list(mean = 0, sd = 1),
+          geom = "area",
+          linetype = "solid",
+          fill = "#E69F00",
+          aes(color = "p-value"),
+          alpha = .35,
+          xlim = c(-3, -abs(input$sampleMean1))
+        )
+    } else {
+      plt <- plt +
+        stat_function(
+          fun = dnorm, # The p-value
+          args = list(mean = 0, sd = 1),
+          geom = "area",
+          linetype = "solid",
+          fill = "#E69F00",
+          aes(color = "p-value"),
+          alpha = .35,
+          xlim = c(input$sampleMean1, 3)
+        )
+    }
+  }
+
+  if (twotailed) {
+    obtpval <- pnorm(
+      abs(input$sampleMean1),
+      mean = mu,
+      sd = stdev,
+      lower.tail = F
+    ) *
+      2
+    sig <- ifelse(obtpval < .05, "Significant", "Not Significant (n.s.)")
+    plt <- plt +
+      annotate(
+        "text",
+        x = 2.3,
+        y = .37,
+        label = paste0(sig, ",\n p = ", round(obtpval, 3)),
+        vjust = 1,
+        hjust = 1
+      )
+  } else {
+    plt <- plt +
+      annotate(
+        "text",
+        x = 2.3,
+        y = .37,
+        label = paste0(
+          if (
+            input$sampleMean1 > qnorm(prob, mean = 0, sd = 1, lower.tail = F)
+          ) {
+            "Significant"
+          } else {
+            "Not Significant (n.s.)"
+          },
+          ",\n p = ",
+          round(
+            pnorm(input$sampleMean1, mean = mu, sd = stdev, lower.tail = F),
+            3
+          )
+        ),
+        vjust = 1,
+        hjust = 1
+      )
+  }
+
+  plt <- plt +
+    #Clears the y-axis label
+    ylab("") +
+    xlab("Well-Being Score") +
+    #Sets the x axis ticks to cover the whole plot
+    scale_x_continuous(
+      limits = c(lower, upper),
+      breaks = seq(round(lower), round(upper), by = 1)
+    ) +
+    #Clears the y-axis ticks
+    scale_y_continuous(breaks = NULL) +
+    theme_minimalism()
+
+  if (input$shadep1) {
+    plt <- plt +
+      scale_colour_manual(
+        "Legend",
+        values = c(
+          "Null Distribution" = "#b2df8a",
+          "Critical Region (alpha)" = "#1f78b4",
+          "p-value" = "#E69F00"
+        )
+      )
+  } else {
+    plt <- plt +
+      scale_colour_manual(
+        "Legend",
+        values = c(
+          "Null Distribution" = "#b2df8a",
+          "Critical Region (alpha)" = "#1f78b4"
+        )
+      )
+  }
+  plt
+  #ggplotly(plt)
+})
+```
+
+<!--Try adjusting the sample mean. How does the p-value change?-->
+
+# Change $\alpha$ and the critical value
+
+- Suppose a test statistic is fixed (e.g., we consider only one dataset), say $Z = 1.25$
+- How would the researcher's decision about $H_0$ change with a different $\alpha$ (and critical value)? (note that $\alpha$ is rarely above .05)
+
+```{r}
+#| panel: fill
+plotOutput(outputId = "alphaPlot1")
+```
+
+:::{.columns}
+
+::: {.column width = "33%"}
+```{r}
+sliderInput("alphaPlotVal", "α:", min = .01, max = .99, value = .05, step = .01)
+```
+:::
+
+::: {.column width = "33%"}
+```{r}
+checkboxInput("shadealpha2", "Shade critical region (alpha)", value = TRUE)
+```
+:::
+
+::: {.column width = "33%"}
+```{r}
+checkboxInput("shadep2", "Shade p-value area", value = FALSE)
+```
+:::
+
+:::
+
+```{r}
+#| context: server
+#library(plotly)
+theme_minimalism <- function(base_size = 20) {
+  theme_minimal(base_size = base_size) + # ggplot's minimal theme hides many unnecessary features of plot
+    theme(
+      # make modifications to the theme
+      panel.grid.major.y = element_blank(), # hide major grid for y axis
+      panel.grid.minor.y = element_blank(), # hide minor grid for y axis
+      panel.grid.major.x = element_blank(), # hide major grid for x axis
+      panel.grid.minor.x = element_blank(), # hide minor grid for x axis
+      #text=element_text(size=14),           # font aesthetics
+      #axis.text=element_text(size=12),
+      #axis.title=element_text(size=14,face="bold"))
+      axis.title = element_text(face = "bold")
+    )
+}
+
+output$alphaPlot1 <- renderPlot({
+  twotailed <- TRUE
+  testval <- 1.25
+  lower <- -3
+  upper <- 3
+  mu <- 0
+  stdev <- 1
+
+  if (twotailed) {
+    crit <- qnorm(input$alphaPlotVal / 2, mean = 0, sd = 1, lower.tail = F)
+  } else {
+    crit <- qnorm(input$alphaPlotVal, mean = 0, sd = 1, lower.tail = F)
+  }
+
+  plt <- ggplot(data = data.frame(x = c(lower, upper)), aes(x)) +
+    stat_function(
+      fun = dnorm, #The Null Distribution
+      args = list(mean = 0, sd = 1),
+      geom = "area",
+      linetype = "solid",
+      fill = NA,
+      size = 1.25,
+      color = "#b2df8a",
+      xlim = c(lower, upper)
+    ) +
+    geom_vline(xintercept = testval, alpha = .5) +
+    annotate(
+      "text",
+      x = testval - .5,
+      y = .28,
+      label = paste0("Standardized sample mean \n Z = 1.25")
+    )
+
+  if (input$shadealpha2) {
+    plt <- plt +
+      stat_function(
+        fun = dnorm, # The critical region
+        args = list(mean = mu, sd = stdev),
+        geom = "area",
+        fill = "#1f78b4",
+        aes(color = "Critical Region (alpha)"),
+        #color="#1f78b4",
+        alpha = .25,
+        xlim = {
+          c(crit, upper)
+        }
+      )
+    if (twotailed) {
+      plt <- plt +
+        stat_function(
+          fun = dnorm, # The critical region
+          args = list(mean = mu, sd = stdev),
+          geom = "area",
+          fill = "#1f78b4",
+          aes(color = "Critical Region (alpha)"),
+          #color="#1f78b4",
+          alpha = .25,
+          xlim = {
+            c(lower, -crit)
+          }
+        )
+    }
+  }
+
+  if (input$shadep2) {
+    plt <- plt +
+      stat_function(
+        fun = dnorm, # The p-value
+        args = list(mean = 0, sd = 1),
+        geom = "area",
+        linetype = "solid",
+        fill = "#E69F00",
+        aes(color = "p-value"),
+        alpha = .35,
+        xlim = c(testval, upper)
+      )
+    if (twotailed) {
+      plt <- plt +
+        stat_function(
+          fun = dnorm, # The p-value
+          args = list(mean = 0, sd = 1),
+          geom = "area",
+          linetype = "solid",
+          fill = "#E69F00",
+          aes(color = "p-value"),
+          alpha = .35,
+          xlim = c(lower, -testval)
+        )
+    }
+  }
+
+  if (twotailed) {
+    obtpval <- pnorm(abs(testval), mean = mu, sd = stdev, lower.tail = F) * 2
+    sig <- ifelse(
+      obtpval < input$alphaPlotVal,
+      "Significant",
+      "Not Significant (n.s.)"
+    )
+    plt <- plt +
+      annotate(
+        "text",
+        x = 2.3,
+        y = .37,
+        label = paste0(sig, ",\n p = ", round(obtpval, 3)),
+        vjust = 1,
+        hjust = 1
+      )
+  } else {
+    plt <- plt +
+      annotate(
+        "text",
+        x = 2.3,
+        y = .37,
+        label = paste0(
+          if (testval > crit) {
+            "Significant"
+          } else {
+            "Not Significant (n.s.)"
+          },
+          ",\n p = ",
+          round(pnorm(abs(testval), mean = mu, sd = stdev, lower.tail = F), 3)
+        ),
+        vjust = 1,
+        hjust = 1
+      )
+  }
+
+  plt <- plt +
+    #Clears the y-axis label
+    ylab("") +
+    xlab("Well-Being Score") +
+    #Sets the x axis ticks to cover the whole plot
+    scale_x_continuous(
+      limits = c(lower, upper),
+      breaks = seq(round(lower), round(upper), by = 1)
+    ) +
+    #Clears the y-axis ticks
+    scale_y_continuous(breaks = NULL) +
+    theme_minimalism()
+
+  if (input$shadep2) {
+    plt <- plt +
+      scale_colour_manual(
+        "Legend",
+        values = c(
+          "Null Distribution" = "#b2df8a",
+          "Critical Region (alpha)" = "#1f78b4",
+          "p-value" = "#E69F00"
+        )
+      )
+  } else {
+    plt <- plt +
+      scale_colour_manual(
+        "Legend",
+        values = c(
+          "Null Distribution" = "#b2df8a",
+          "Critical Region (alpha)" = "#1f78b4"
+        )
+      )
+  }
+  plt
+  #ggplotly(plt)
+})
+```
+
+<!--
+
+TODO: make it so that there is a two-tailed option, then re-enable this
+
+# Changing both the test statistic and alpha {.h2}
+
+This slide will allow you to change both the obtained test statistic *and* $\alpha$
+
+```{r}
+#| eval: false
+#| panel: fill
+plotlyOutput(outputId = "effectSizeAlphaPlot")
+```
+
+::::: {layout="[0.5, 0.5]"}
+::: {.column width="100%"}
+```{r}
+#| eval: false
+sliderInput(
+  "effectSize",
+  "Sample Mean:",
+  min = -3,
+  max = 3,
+  value = 2,
+  step = .05
+)
+```
+:::
+
+::: {.column width="100%"}
+```{r}
+#| eval: false
+sliderInput("alpha", "α:", min = .01, max = 1, value = .05, step = .01)
+```
+:::
+:::::
+
+```{r}
+#| eval: false
+#| context: server
+library(plotly)
+theme_minimalism <- function(base_size = 20) {
+  theme_minimal(base_size = base_size) + # ggplot's minimal theme hides many unnecessary features of plot
+    theme(
+      # make modifications to the theme
+      panel.grid.major.y = element_blank(), # hide major grid for y axis
+      panel.grid.minor.y = element_blank(), # hide minor grid for y axis
+      panel.grid.major.x = element_blank(), # hide major grid for x axis
+      panel.grid.minor.x = element_blank(), # hide minor grid for x axis
+      #text=element_text(size=14),           # font aesthetics
+      #axis.text=element_text(size=12),
+      #axis.title=element_text(size=14,face="bold"))
+      axis.title = element_text(face = "bold")
+    )
+}
+
+output$effectSizeAlphaPlot <- renderPlotly({
+  lower <- -3
+  upper <- 3
+  mu <- 0
+  #beta_value <- reactive({pnorm(-qnorm(input$alpha/2,mean=mu)) - pnorm(qnorm(input$alpha/2,mean=-mu))})
+  #power <- 1-beta_value()
+  stdev <- 1
+  critval <- reactive({
+    qnorm(input$alpha, mean = mu, sd = stdev, lower.tail = F)
+  })
+  #critval <- 0 + critval()
+
+  ggplot(data = data.frame(x = c(lower, upper)), aes(x)) +
+    stat_function(
+      fun = dnorm, #The Null Distribution
+      args = list(mean = mu, sd = stdev),
+      geom = "area",
+      linetype = "solid",
+      fill = NA,
+      size = 1.25,
+      color = "#b2df8a",
+      xlim = c(lower, upper)
+    ) +
+    stat_function(
+      fun = dnorm, # The critical region
+      args = list(mean = mu, sd = stdev),
+      geom = "area",
+      fill = "#1f78b4",
+      color = "#1f78b4",
+      alpha = .5,
+      xlim = {
+        c(qnorm(input$alpha, mean = mu, sd = stdev, lower.tail = F), upper)
+      }
+    ) +
+    #annotate("text",x=Inf,y=Inf, label = paste0("Power = ", round(power,3)), vjust = 1, hjust = 1) +
+    annotate(
+      "text",
+      x = critval(),
+      y = .07,
+      label = paste0("Critical Value = ", round(critval(), 3)),
+      vjust = 1,
+      hjust = 1
+    ) +
+    annotate(
+      "text",
+      x = input$effectSize,
+      y = .2,
+      label = paste0(
+        "Sample Mean = ",
+        input$effectSize,
+        "\n",
+        if (
+          input$effectSize >
+            qnorm(input$alpha, mean = mu, sd = stdev, lower.tail = F)
+        ) {
+          "Significant"
+        } else {
+          "Not Significant (n.s.)"
+        },
+        ",\n p = ",
+        round(pnorm(input$effectSize, mean = mu, sd = stdev, lower.tail = F), 3)
+      ),
+      vjust = 1,
+      hjust = 1
+    ) +
+    geom_vline(xintercept = input$effectSize, alpha = .5) +
+    geom_vline(xintercept = critval(), alpha = .5) +
+    #Clears the y-axis label
+    ylab("") +
+    xlab("Well-Being Score") +
+    #Sets the x axis ticks to cover the whole plot
+    scale_x_continuous(
+      limits = c(lower, upper),
+      breaks = seq(round(lower), round(upper), by = 1)
+    ) +
+    #Clears the y-axis ticks
+    scale_y_continuous(breaks = NULL) +
+    theme_minimalism()
+})
+```
+
+-->
+
+# Test your knowledge
+
+Scroll down to test your knowledge of null hypothesis significance testing and its components ($p$-values, $\alpha$, obtained test statistic, critical value)
+
+## Logic of hypothesis testing
+
+::: {.fragment}
+- When we say, "what distribution did the mean likely come from," what are we really asking?
+:::
+
+::: {.fragment}
+We want to know whether the observed mean from the sample (in our effort to estimate the population mean), is plausible under the null hypothesis. If it is not, we reject the null hypothesis in favor of the alternative hypothesis.
+:::
+
+::: {.fragment}
+- Is a single sample's mean sufficient to tell us whether the alternative hypothesis is true? 
+:::
+
+::: {.fragment}
+No, hypothesis testing only evaluates whether the observed sample mean is likely or unlikely under the null hypothesis. It does not provide explicit information about the alternative hypothesis.
+:::
+
+## Components of hypothesis testing
+
+::: {.fragment}
+- Are $\alpha$ and the critical value determined assuming $H_0$ is true or the alternative hypothesis is true?
+:::
+
+::: {.fragment}
+The researcher chooses $\alpha$.  Its critical value is determined assuming $H_0$ is true. Each value of $\alpha$ has a one-to-one relationship with a corresponding critical value.
+:::
+
+::: {.fragment}
+- Is a $p$-value the probability that $H_0$ is true?
+:::
+
+::: {.fragment}
+No, but this is a common misconception.
+:::
+
+::: {.fragment}
+- What does a $p$-value represent?
+:::
+
+::: {.fragment}
+A $p$-value is the probability of observing a test statistic as extreme or more extreme than that for our sample, if $H_0$ is true. In other words, it allows us to judge whether the observed data is incompatible with $H_0$.
+:::
+
+## Components of hypothesis testing
+
+::: {.fragment}
+- If an observed mean (or its corresponding observed test statistic) exceeds the critical value, what conclusion can we draw?
+:::
+
+::: {.fragment}
+We conclude that the sample mean is unlikely to have come from the null distribution, so we reject the null hypothesis. 
+:::
+
+::: {.fragment}
+- If an observed mean (or its corresponding observed test statistic) exceeds the critical value, will its corresponding $p$-value be less than or greater than $\alpha$?
+:::
+
+::: {.fragment}
+If an observed test statistic is greater than the critical value, its corresponding $p$-value will be less than $\alpha$. Conversely, if an observed test statistic is less than the critical value, its corresponding $p$-value will be greater than $\alpha$. In general, use of either the test statistic or $p$-value will yield the same conclusion.
+:::
+
+## Components of hypothesis testing
+
+::: {.fragment}
+- What determines the size of the critical region?
+:::
+
+::: {.fragment}
+Choice of $\alpha$. $\alpha$ directly corresponds to the proportion of the null distribution that is in the critical region.
+:::
+
+::: {.fragment}
+- What determines the critical value (or cut-off for the critical region)?
+:::
+
+::: {.fragment}
+The critical value, or cut-off/threshold, is primarily determined by $\alpha$, but also requires knowledge of the null distribution.
+:::
+
+## Test your knowledge
+
+::: {.fragment}
+- Suppose we set $\alpha = .05$. Later we collect data, calculate a test statistic, and the $p$-value = .08. Do we reject $H_0$? What conclusion do we make?
+:::
+
+::: {.fragment}
+In this case $p > \alpha$, so we do not reject $H_0$. <!--Any difference between $\bar{x}$ and the hypothesized value under $H_0$ may be just due to chance.-->
+:::
+
+::: {.fragment}
+- Suppose we set $\alpha = .01$. Later we collect data, calculate a test statistic, and the $p$-value = .03. Do we reject $H_0$? What conclusion do we make?
+:::
+
+::: {.fragment}
+Again, $p > \alpha$, so we do not reject $H_0$. <!--Any difference between $\bar{x}$ and the hypothesized value under $H_0$ may be just due to chance.-->
+:::
+
+::: {.fragment}
+- Under which situation are we more likely to reject $H_0$: When $\alpha=.05$ or when $\alpha = .10$?
+:::
+
+::: {.fragment}
+
+When $\alpha = .1$, there are more possible values of the test statistic that could result in rejecting $H_0$. Though note that $\alpha=.05$ or $\alpha=.01$ are more typical choices in practice than $\alpha=.1$.
+:::
+
+<!--
+## Test your knowledge
+
+::::: {.fragment}
+- Which of the following two plots corresponds to a larger $\alpha$?
+
+:::: {.columns}
+
+::: {.column width = "50%"}
+
+```{r}
+#| eval: false
+#| fig-align: center
+ggplotly(
+  plot1 +
+    stat_function(
+      fun = dnorm, # The lower critical region
+      args = list(mean = 0, sd = 1),
+      geom = "area",
+      linetype = "solid",
+      fill = "#1f78b4",
+      aes(color = "Critical Region"),
+      xlim = c(qnorm(.15, mean = 0, sd = 1, lower.tail = F), 3)
+    ) +
+    scale_colour_manual(
+      "Legend",
+      values = c(
+        "Null Distribution" = "#b2df8a",
+        #"Alternative Distribution"= "#a6cee3",
+        "Critical Region" = "#1f78b4"
+      )
+    )
+)
+#"Power" = "#33a02c"))
+```
+
+:::
+
+::: {.column width = "50%"}
+
+```{r}
+#| eval: false
+#| fig-align: center
+ggplotly(
+  plot1 +
+    stat_function(
+      fun = dnorm, # The lower critical region
+      args = list(mean = 0, sd = 1),
+      geom = "area",
+      linetype = "solid",
+      fill = "#1f78b4",
+      aes(color = "Critical Region"),
+      xlim = c(qnorm(.05, mean = 0, sd = 1, lower.tail = F), 3)
+    ) +
+    scale_colour_manual(
+      "Legend",
+      values = c(
+        "Null Distribution" = "#b2df8a",
+        #"Alternative Distribution"= "#a6cee3",
+        "Critical Region" = "#1f78b4"
+      )
+    )
+)
+#"Power" = "#33a02c"))
+```
+
+:::
+
+::::
+
+:::::
+
+::: {.fragment}
+
+The plot on the left corresponds to a larger $\alpha$. The area in the tail is larger. It will be easier to reject $H_0$ under this level of $\alpha$.
+
+:::
+-->
+
+# Looking ahead: Other test statistics
+
+The same concepts in this module also apply to other kinds of hypothesis tests:
+
+- single sample $t$-tests, independent samples $t$-tests, repeated measures $t$-tests, Analysis of Variance (ANOVA), chi-square tests of independence, etc.
+
+1. The null hypothesis and desired test statistic imply a sampling distribution under $H_0$
+2. A choice of $\alpha$ determines a cut-off value (i.e., critical value) under the sampling distribution for $H_0$
+3. The obtained test statistic from the sample can be compared to the critical value *or*
+3. The $p$-value can be compared to $\alpha$
+
+# Thank you!
+
+This concludes the module on $p$-values
+
+This module made available by a small grant from the Association for Psychological Science
+
+Authors: Jeremy Rappel, Mira Saad, Carl F. Falk, Jens Kreitewolf
+Initial Evaluation: Domi Wong
+
+<!--
+# Looking ahead
+
+- Two-tailed tests
+- Other test statistics
+
+# Upper/Lower-tailed tests {.h2}
+
+In the prior example, we hypothesized that well-being scores in our sample would be *higher* than a baseline.
+
+This is an example of a *one-tailed* test, because we specify a direction
+
+# Upper/Lower-tailed tests {.r-fit-text}
+
+We might also have hypothesized that scores in our sample would be *lower* than a baseline
+
+::: {.center}
+
+```{r}
+#| eval: false
+#| fig-align: center
+ggplotly(
+  plot1 +
+    geom_vline(xintercept = 2.4, alpha = .5) +
+    geom_vline(xintercept = -1.644854, alpha = .5) +
+    annotate("text", x = 2.4, y = .05, label = paste0("Sample mean = 2.4")) +
+    stat_function(
+      fun = dnorm, # The lower critical region
+      args = list(mean = 0, sd = 1),
+      geom = "area",
+      linetype = "solid",
+      fill = "#1f78b4",
+      aes(color = "Critical Region"),
+      xlim = c(-3, qnorm(.05, mean = 0, sd = 1))
+    ) +
+    scale_colour_manual(
+      "Legend",
+      values = c(
+        "Null Distribution" = "#b2df8a",
+        #"Alternative Distribution"= "#a6cee3",
+        "Critical Region" = "#1f78b4"
+      )
+    ) +
+    #"Power" = "#33a02c"))
+    annotate(
+      "text",
+      x = -1.644854,
+      y = .07,
+      label = paste0("Cut-off value = -1.65")
+    ) +
+    annotate("text", x = 2.4, y = .05, label = paste0("Sample mean = 2.4"))
+) #|> layout(legend = list(x = 0.9, y = 0.9)))
+```
+
+:::
+
+This is an example of a lower one-tailed test. Note that here, our sample mean would have be *below* the critical value to reject H0.
+
+# Sample Mean (Two-Tailed) {.h2}
+
+```{r}
+#| eval: false
+#| panel: fill
+plotlyOutput(outputId = "sampleMeanPlotTwoTailed")
+sliderInput(
+  "sampleMean",
+  "Sample Mean (Standardized):",
+  min = -3,
+  max = 3,
+  value = 2,
+  step = .05
+)
+```
+
+```{r}
+#| eval: false
+#| context: server
+library(plotly)
+theme_minimalism <- function(base_size = 20) {
+  theme_minimal(base_size = base_size) + # ggplot's minimal theme hides many unnecessary features of plot
+    theme(
+      # make modifications to the theme
+      panel.grid.major.y = element_blank(), # hide major grid for y axis
+      panel.grid.minor.y = element_blank(), # hide minor grid for y axis
+      panel.grid.major.x = element_blank(), # hide major grid for x axis
+      panel.grid.minor.x = element_blank(), # hide minor grid for x axis
+      #text=element_text(size=14),           # font aesthetics
+      #axis.text=element_text(size=12),
+      #axis.title=element_text(size=14,face="bold"))
+      axis.title = element_text(face = "bold")
+    )
+}
+
+output$sampleMeanPlotTwoTailed <- renderPlotly({
+  lower <- -3
+  upper <- 3
+  mu <- 0
+  #beta_value <- reactive({pnorm(-qnorm(input$alpha/2,mean=mu)) - pnorm(qnorm(input$alpha/2,mean=-mu))})
+  #power <- 1-beta_value()
+  stdev <- 1
+  critval <- reactive({
+    qnorm(.05, mean = mu, sd = stdev, lower.tail = F)
+  })
+  #critval <- 0 + critval()
+
+  ggplot(data = data.frame(x = c(lower, upper)), aes(x)) +
+    stat_function(
+      fun = dnorm, #The Null Distribution
+      args = list(mean = mu, sd = stdev),
+      geom = "area",
+      linetype = "solid",
+      fill = NA,
+      size = 1.25,
+      color = "#b2df8a",
+      xlim = c(lower, upper)
+    ) +
+    stat_function(
+      fun = dnorm, # The upper critical region
+      args = list(mean = mu, sd = stdev),
+      geom = "area",
+      fill = "#1f78b4",
+      color = "#1f78b4",
+      alpha = .5,
+      xlim = c(qnorm(.025, mean = mu, sd = stdev, lower.tail = F), upper)
+    ) +
+    stat_function(
+      fun = dnorm, # The lower critical region
+      args = list(mean = mu, sd = stdev),
+      geom = "area",
+      fill = "#1f78b4",
+      color = "#1f78b4",
+      alpha = .5,
+      xlim = c(lower, qnorm(.025, mean = mu, sd = stdev))
+    ) +
+    #annotate("text",x=Inf,y=Inf, label = paste0("Power = ", round(power,3)), vjust = 1, hjust = 1) +
+    geom_vline(xintercept = input$sampleMean, alpha = .5) +
+    annotate(
+      "text",
+      x = 2,
+      y = .2,
+      label = paste0(
+        if (
+          input$sampleMean > qnorm(.025, mean = mu, sd = stdev, lower.tail = F)
+        ) {
+          "Significant"
+        } else if (input$sampleMean < qnorm(.025, mean = mu, sd = stdev)) {
+          "Significant"
+        } else {
+          "Not Significant (n.s.)"
+        },
+        ",\n p = ",
+        round(pnorm(input$sampleMean, mean = mu, sd = stdev, lower.tail = F), 3)
+      ),
+      vjust = 1,
+      hjust = 1
+    ) +
+    #Clears the y-axis label
+    ylab("") +
+    xlab("Well-Being Score") +
+    #Sets the x axis ticks to cover the whole plot
+    scale_x_continuous(
+      limits = c(lower, upper),
+      breaks = seq(round(lower), round(upper), by = 1)
+    ) +
+    #Clears the y-axis ticks
+    scale_y_continuous(breaks = NULL) +
+    theme_minimalism()
+})
+```
+
+<!--
+# Test your knowledge: Effect Sizes
+
+Scroll down to test your knowledge of effect sizes.
+
+## Effect Sizes
+
+:::: r-stack
+::: {.fragment fragment-index="14"}
+-   How does an effect size relate to a p-value?
+
+[The effect size tells you the magnitude of the effect that you observed, the significance.]{.fragment .fade-in fragment-index="15"}
+
+-   Why can a tiny effect be statistically significant with a large enough sample?
+
+[Null hypothesis/p-value based hypothesis testing is very sensitive to sample size, standard deviation, XXX, hence you may observe a p-value below your alpha while not being at a meaningfully significant effect]{.fragment .fade-in fragment-index="16"}
+:::
+::::
+
+## Effect Sizes
+
+:::: r-stack
+::: {.fragment fragment-index="14"}
+-   Why is it important to report both p-values and effect sizes?
+
+[The effect size can help you determine whether you are at risk of a false positive.]{.fragment .fade-in fragment-index="15"}
+
+-   Why might researchers choose a higher alpha when expecting a very small effect?
+
+[If we expect the effect size to be small, then we expect the probability of observing a chosen parameter in the critical region to be low. Hence, we chose a high alpha as to not accept the null when we observe a high probability that the mean is from the null.]{.fragment .fade-in fragment-index="16"}
+:::
+::::
+-->

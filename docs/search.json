@@ -1,0 +1,191 @@
+[
+  {
+    "objectID": "index.html#imagine-mu-50-and-sigma2-25",
+    "href": "index.html#imagine-mu-50-and-sigma2-25",
+    "title": "Hypothesis Testing and \\(p\\)-Values",
+    "section": "Imagine \\(\\mu = 50\\) and \\(\\sigma^2 = 25\\)",
+    "text": "Imagine \\(\\mu = 50\\) and \\(\\sigma^2 = 25\\)\n\n\nIf true, pretend we can do the following:\n\nObtain a sample of \\(n=30\\) and record the mean well-being score.\nRepeat Step 1 many (e.g., ten-thousand) times.\nPlot the distribution of the sample means:\n\n\n\n\nWhat special name does this distribution have?\n\nSampling distribution of the mean\n\nWas this distribution created assuming \\(H_0\\) is true?\n\nYes, under this thought experiment, we assumed \\(\\mu = 50\\); its standard deviation (i.e., standard error) is \\(\\sqrt{25/30} \\approx .913\\)"
+  },
+  {
+    "objectID": "index.html#sampling-distribution",
+    "href": "index.html#sampling-distribution",
+    "title": "Hypothesis Testing and \\(p\\)-Values",
+    "section": "Sampling distribution",
+    "text": "Sampling distribution\n\nSuppose we want to know how many sample means are above 52. How can we know?\n\nCount the number of sample means with a well-being score above 52. In this case, there are 129 out of 10,000 sample means above 52. We can represent this number as a percentage (1.29%) or proportion (.0129)."
+  },
+  {
+    "objectID": "index.html#sampling-distribution-cut-offs",
+    "href": "index.html#sampling-distribution-cut-offs",
+    "title": "Hypothesis Testing and \\(p\\)-Values",
+    "section": "Sampling distribution cut-offs",
+    "text": "Sampling distribution cut-offs\n#| '!! shinylive warning !!': |\n#|   shinylive does not work in self-contained HTML documents.\n#|   Please set `embed-resources: false` in your metadata.\n#| standalone: true\n#| panel: fill\n#| fig-align: center\n#| viewerHeight: 600\nlibrary(tibble)\nlibrary(munsell)\nlibrary(shiny)\nlibrary(ggplot2)\n\nui &lt;- fluidPage(\n  plotOutput(outputId = \"sampDistPlot\"),\n  sliderInput(\"cutoff\", \"Cut-off:\", min = 48, max = 52, value = 51, step = 1)\n)\n\nserver &lt;- function(input, output) {\n  theme_minimalism &lt;- function(base_size = 20) {\n    theme_minimal(base_size = base_size) + # ggplot's minimal theme hides many unnecessary features of plot\n      theme(\n        # make modifications to the theme\n        panel.grid.major.y = element_blank(), # hide major grid for y axis\n        panel.grid.minor.y = element_blank(), # hide minor grid for y axis\n        panel.grid.major.x = element_blank(), # hide major grid for x axis\n        panel.grid.minor.x = element_blank(), # hide minor grid for x axis\n        #text=element_text(size=14),           # font aesthetics\n        #axis.text=element_text(size=12),\n        #axis.title=element_text(size=14,face=\"bold\"))\n        axis.title = element_text(face = \"bold\")\n      )\n  }\n\n  output$sampDistPlot &lt;- renderPlot({\n    lower &lt;- 47\n    upper &lt;- 53\n    mu &lt;- 50\n    #stdev &lt;- 5\n\n    set.seed(1234) #So we get the same results as above\n    dat &lt;- round(rnorm(10000, 50, sqrt(25 / 30)), 1)\n\n    sampdist &lt;- data.frame(x = dat) #Converts the above to a dataframe\n    #sampdist &lt;- sampdist %&gt;% dplyr::mutate(aboveCutoff = ifelse(x &gt; input$cutoff, T,F)) #Adds a column counting if a given value is Above or Below the Sample Mean\n    sampdist &lt;- sampdist %&gt;%\n      dplyr::mutate(\n        aboveCutoff = ifelse(x &gt; input$cutoff, \"Above Cut-off\", \"Below Cut-off\")\n      ) #Adds a column counting if a given value is Above or Below the Sample Mean\n    percent &lt;- (length(which(sampdist$aboveCutoff == \"Above Cut-off\")) /\n      10000) *\n      100\n\n    ggplot(data = sampdist, aes(x, color = aboveCutoff, fill = aboveCutoff)) +\n      geom_histogram(binwidth = .1) +\n      annotate(\n        \"text\",\n        x = 51,\n        y = 1200,\n        label = paste0(\n          percent,\n          \"% of the distribution \\n has a sample mean above \",\n          input$cutoff\n        ),\n        vjust = 1,\n        hjust = 1\n      ) +\n      ylab(\"Count\") +\n      xlab(\"Well-Being Score\") +\n      #Sets the x axis ticks to cover the whole plot\n      scale_x_continuous(\n        limits = c(lower, upper),\n        breaks = seq(round(lower), round(upper), by = 1)\n      ) +\n      #Clears the y-axis ticks\n      scale_color_manual(\"aboveCutoff\", values = c(\"#1F78B4\", \"#b2df8a\")) +\n      scale_fill_manual(\"aboveCutoff\", values = c(\"#1F78B4\", \"#b2df8a\")) +\n      scale_y_continuous(breaks = NULL) +\n      theme_bw(base_size = 20) +\n      theme(legend.title = element_blank())\n    #theme_minimalism()\n  })\n}\n\nshinyApp(ui, server)\nTry adjusting the sample mean cut-off."
+  },
+  {
+    "objectID": "index.html#sampling-distribution-1",
+    "href": "index.html#sampling-distribution-1",
+    "title": "Hypothesis Testing and \\(p\\)-Values",
+    "section": "Sampling distribution",
+    "text": "Sampling distribution\n\nAssuming the central limit theorem holds, what shape does this distribution have?\n\n\n\nNormal. That the sampling distribution of the mean is normal will be useful when we later conduct hypothesis testing.\n\n\nNormal. We do not need to hypothetically conduct many experiments. Given the mean and variance of the population, statisticians have figured out the shape of the sampling distribution and the proportion of means above/below any value."
+  },
+  {
+    "objectID": "index.html#normal-distribution",
+    "href": "index.html#normal-distribution",
+    "title": "Hypothesis Testing and \\(p\\)-Values",
+    "section": "Normal distribution",
+    "text": "Normal distribution\n\nA normal distribution is a probability distribution\n\nIf scores follow a normal distribution, it tells us the probability of observing certain scores (or ranges of scores)\n\nThe shape of a normal distribution is fully described by just two numbers:\n\nMean\nVariance (or standard deviation)"
+  },
+  {
+    "objectID": "index.html#normal-distribution-1",
+    "href": "index.html#normal-distribution-1",
+    "title": "Hypothesis Testing and \\(p\\)-Values",
+    "section": "Normal distribution",
+    "text": "Normal distribution\nTry changing the mean and variance to see how the distribution changes:\n#| '!! shinylive warning !!': |\n#|   shinylive does not work in self-contained HTML documents.\n#|   Please set `embed-resources: false` in your metadata.\n#| standalone: true\n#| panel: fill\n#| fig-align: center\n#| viewerHeight: 650\nlibrary(tibble)\nlibrary(munsell)\nlibrary(shiny)\nlibrary(ggplot2)\n\nui &lt;- fluidPage(\n  plotOutput(outputId = \"normalDistPlot1\"),\n  sliderInput(\"normalmean\", \"Mean:\", min = 40, max = 60, value = 50, step = 1),\n  sliderInput(\"normalvar\", \"Variance:\", min = 10, max = 40, value = 25, step = 1)\n)\n\nserver &lt;- function(input, output){\n  output$normalDistPlot1 &lt;- renderPlot({\n    p &lt;- ggplot(data.frame(x = c(25, 75)), aes(x = x)) +\n      xlim(25, 75) +\n      ylim(0, .15) +\n  \n      stat_function(\n        fun = dnorm,\n        args = list(mean = input$normalmean, sd = sqrt(input$normalvar)),\n        geom = \"area\",\n        fill = \"#b2df8a\"\n      ) +\n      stat_function(\n        fun = dnorm,\n        args = list(mean = input$normalmean, sd = sqrt(input$normalvar))\n      ) +\n  \n      labs(x = \"\\n X\", y = \"density \\n\") +\n      theme_bw(base_size = 19)\n    p\n  })\n}\n\nshinyApp(ui, server)"
+  },
+  {
+    "objectID": "index.html#standard-normal-distribution",
+    "href": "index.html#standard-normal-distribution",
+    "title": "Hypothesis Testing and \\(p\\)-Values",
+    "section": "Standard normal distribution",
+    "text": "Standard normal distribution\n\n\nA standard normal distribution is a special case of the normal distribution with:\n\nMean = 0\nVariance = 1 (or equivalently, standard deviation = 1)\n\n\n\nA standard normal distribution is often referenced in hypothesis testing\n\nYou may have seen a “Z table” that has values of this distribution with the proportion in one or both tails\nExamples are provided on the next slides"
+  },
+  {
+    "objectID": "index.html#standard-normal-distribution-1",
+    "href": "index.html#standard-normal-distribution-1",
+    "title": "Hypothesis Testing and \\(p\\)-Values",
+    "section": "Standard normal distribution",
+    "text": "Standard normal distribution\n\nThe table below has pairs of values:\n\nZ: a value along the x-axis of a standard normal distribution\nprop: the proportion in the right-hand tail of the distribution\n\n\n\n\n\n\nZ\nprop\nZ\nprop\nZ\nprop\nZ\nprop\n\n\n\n\n-2.0\n0.977\n-1.0\n0.841\n0.0\n0.500\n1.0\n0.159\n\n\n-1.9\n0.971\n-0.9\n0.816\n0.1\n0.460\n1.1\n0.136\n\n\n-1.8\n0.964\n-0.8\n0.788\n0.2\n0.421\n1.2\n0.115\n\n\n-1.7\n0.955\n-0.7\n0.758\n0.3\n0.382\n1.3\n0.097\n\n\n-1.6\n0.945\n-0.6\n0.726\n0.4\n0.345\n1.4\n0.081\n\n\n-1.5\n0.933\n-0.5\n0.691\n0.5\n0.309\n1.5\n0.067\n\n\n-1.4\n0.919\n-0.4\n0.655\n0.6\n0.274\n1.6\n0.055\n\n\n-1.3\n0.903\n-0.3\n0.618\n0.7\n0.242\n1.7\n0.045\n\n\n-1.2\n0.885\n-0.2\n0.579\n0.8\n0.212\n1.8\n0.036\n\n\n-1.1\n0.864\n-0.1\n0.540\n0.9\n0.184\n1.9\n0.029\n\n\n\n\n\nExample: 18.4% of the distribution greater than 0.9; thus we can infer that 81.6% of the distribution is less than 0.9."
+  },
+  {
+    "objectID": "index.html#standard-normal-distribution-2",
+    "href": "index.html#standard-normal-distribution-2",
+    "title": "Hypothesis Testing and \\(p\\)-Values",
+    "section": "Standard normal distribution",
+    "text": "Standard normal distribution\n\nThe table below has pairs of values:\n\nZ: a value along the x-axis of a standard normal distribution\nprop: the proportion in the left-hand tail of the distribution\n\n\n\n\n\n\nZ\nprop\nZ\nprop\nZ\nprop\nZ\nprop\n\n\n\n\n-2.0\n0.023\n-1.0\n0.159\n0.0\n0.500\n1.0\n0.841\n\n\n-1.9\n0.029\n-0.9\n0.184\n0.1\n0.540\n1.1\n0.864\n\n\n-1.8\n0.036\n-0.8\n0.212\n0.2\n0.579\n1.2\n0.885\n\n\n-1.7\n0.045\n-0.7\n0.242\n0.3\n0.618\n1.3\n0.903\n\n\n-1.6\n0.055\n-0.6\n0.274\n0.4\n0.655\n1.4\n0.919\n\n\n-1.5\n0.067\n-0.5\n0.309\n0.5\n0.691\n1.5\n0.933\n\n\n-1.4\n0.081\n-0.4\n0.345\n0.6\n0.726\n1.6\n0.945\n\n\n-1.3\n0.097\n-0.3\n0.382\n0.7\n0.758\n1.7\n0.955\n\n\n-1.2\n0.115\n-0.2\n0.421\n0.8\n0.788\n1.8\n0.964\n\n\n-1.1\n0.136\n-0.1\n0.460\n0.9\n0.816\n1.9\n0.971\n\n\n\n\n\nExample: 81.6% of the distribution less than 0.9; thus we can infer that 18.4% of the distribution is greater than 0.9."
+  },
+  {
+    "objectID": "index.html#standard-normal-distribution-3",
+    "href": "index.html#standard-normal-distribution-3",
+    "title": "Hypothesis Testing and \\(p\\)-Values",
+    "section": "Standard normal distribution",
+    "text": "Standard normal distribution\nTo visualize Z values and the proportion in the tail, change the values or tail below:\n#| '!! shinylive warning !!': |\n#|   shinylive does not work in self-contained HTML documents.\n#|   Please set `embed-resources: false` in your metadata.\n#| standalone: true\n#| panel: fill\n#| fig-align: center\n#| viewerHeight: 600\nlibrary(tibble)\nlibrary(munsell)\nlibrary(shiny)\nlibrary(ggplot2)\n\nui &lt;- fluidPage(\n  plotOutput(outputId = \"normalDistPlot3\"),\n  numericInput(\n    \"normalcutoff2\",\n    \"Z cutoff value:\",\n    min = -3,\n    max = 3,\n    value = 1,\n    step = .05\n  ),\n  radioButtons(\n    \"normaltail2\",\n    \"Choose a tail:\",\n    choices = c(\"Upper Tail\", \"Lower Tail\")\n  )\n)\n\nserver &lt;- function(input, output){\n  output$normalDistPlot3 &lt;- renderPlot({\n    prop &lt;- ifelse(\n      input$normaltail2 == \"Upper Tail\",\n      round(pnorm(input$normalcutoff2, lower.tail = FALSE), 3),\n      round(pnorm(input$normalcutoff2, lower.tail = TRUE), 3)\n    )\n  \n    p &lt;- ggplot(data.frame(x = c(-4, 4)), aes(x = x)) +\n      xlim(-4, 4) +\n      ylim(0, .5) +\n  \n      stat_function(fun = dnorm)\n  \n    if (input$normaltail2 == \"Upper Tail\") {\n      p &lt;- p +\n        stat_function(\n          fun = dnorm,\n          geom = \"area\",\n          fill = \"#b2df8a\",\n          xlim = c(-4, input$normalcutoff2)\n        ) +\n        stat_function(\n          fun = dnorm,\n          geom = \"area\",\n          fill = \"#1F78B4\",\n          xlim = c(input$normalcutoff2, 4)\n        ) +\n        geom_text(label = paste0(\"Proportion: \", prop), x = 3, y = .3)\n    } else if (input$normaltail2 == \"Lower Tail\") {\n      p &lt;- p +\n        stat_function(\n          fun = dnorm,\n          geom = \"area\",\n          fill = \"#1F78B4\",\n          xlim = c(-4, input$normalcutoff2)\n        ) +\n        stat_function(\n          fun = dnorm,\n          geom = \"area\",\n          fill = \"#b2df8a\",\n          xlim = c(input$normalcutoff2, 4)\n        ) +\n        geom_text(label = paste0(\"Proportion: \", prop), x = -3, y = .3)\n    }\n  \n    p &lt;- p +\n      geom_vline(xintercept = input$normalcutoff2, color = \"black\") +\n      labs(x = \"\\n z\", y = \"density \\n\") +\n      theme_bw(base_size = 22) +\n      geom_text(\n        label = paste0(\"Cutoff: \", input$normalcutoff2),\n        x = input$normalcutoff2 - .7,\n        y = .45\n      )\n  \n    p\n  })\n}\n\nshinyApp(ui, server)"
+  },
+  {
+    "objectID": "index.html#learning-check",
+    "href": "index.html#learning-check",
+    "title": "Hypothesis Testing and \\(p\\)-Values",
+    "section": "Learning check",
+    "text": "Learning check\nBased on either a Z-table or the app on the slide above…\n\n\nWhat proportion of scores are above Z = 1.30?\n\n\n\nAnswer: .097 or 9.7%\n\n\n\nWhat proportion of scores are below Z = -1.20?\n\n\n\nAnswer: .115 or 11.5%\n\n\n\nWhat proportion of scores are between Z = -1.8 and Z = 1.8?\n\n\n\nAnswer: This one is a little more challenging. Recall that proportions range from 0 to 1; the proportion of the entire distribution is equal to 1. Since .036 is less than Z = -1.8, and .036 is above Z = 1.8, then the proportion between these two values is: 1 - .036 - .036 = .928."
+  },
+  {
+    "objectID": "index.html#standardizing-a-single-score",
+    "href": "index.html#standardizing-a-single-score",
+    "title": "Hypothesis Testing and \\(p\\)-Values",
+    "section": "Standardizing a single score",
+    "text": "Standardizing a single score\nWhat if we sample a single observation and obtain a score of \\(X = 58\\)?\n\nIs that a large value? A small value?\n\nIf we knew how \\(X = 58\\) compared to other scores, we could answer such questions\n\nStandardized scores, or Z-scores, can help us compare \\(X=58\\) to some distribution of other scores"
+  },
+  {
+    "objectID": "index.html#standardized-z-scores",
+    "href": "index.html#standardized-z-scores",
+    "title": "Hypothesis Testing and \\(p\\)-Values",
+    "section": "Standardized (Z) scores",
+    "text": "Standardized (Z) scores\nTo compute a Z-score, we need to know something about the distribution of other scores:\n\nThe mean\nThe standard deviation (or variance)\n\nThe score can then be standardized:\n\\[\\begin{align*}\nZ = \\frac{\\text{score - mean}}{\\text{standard deviation}}\n\\end{align*}\\]"
+  },
+  {
+    "objectID": "index.html#standardized-z-scores-1",
+    "href": "index.html#standardized-z-scores-1",
+    "title": "Hypothesis Testing and \\(p\\)-Values",
+    "section": "Standardized (Z) scores",
+    "text": "Standardized (Z) scores\nAs an example, pretend:\n\n\\(X = 58\\)\nWe compare \\(X\\) to a distribution of scores with \\(\\text{mean} = 50\\) and \\(\\text{standard deviation} = 5\\)\n\nThen,\n\\[\\begin{align*}\nZ = \\frac{\\text{score - mean}}{\\text{standard deviation}} = \\frac{58-50}{5} = 1.6\n\\end{align*}\\]\nTo interpret the Z-score for this observation, we can say that \\(X\\) is 1.6 standard deviations above the mean of the other scores"
+  },
+  {
+    "objectID": "index.html#standardizing-a-normal-distribution",
+    "href": "index.html#standardizing-a-normal-distribution",
+    "title": "Hypothesis Testing and \\(p\\)-Values",
+    "section": "Standardizing a normal distribution",
+    "text": "Standardizing a normal distribution\nInterpreting Z-scores is easier if the entire distribution of other scores follows a normal distribution\n\nWe can reference a Z-table or an app that tells us the proportion of scores below or above a particular Z-score"
+  },
+  {
+    "objectID": "index.html#standard-normal-distribution-4",
+    "href": "index.html#standard-normal-distribution-4",
+    "title": "Hypothesis Testing and \\(p\\)-Values",
+    "section": "Standard normal distribution",
+    "text": "Standard normal distribution\nTo visualize Z values and the proportion in the tail, change the values or tail below:\n#| '!! shinylive warning !!': |\n#|   shinylive does not work in self-contained HTML documents.\n#|   Please set `embed-resources: false` in your metadata.\n#| standalone: true\n#| panel: fill\n#| fig-align: center\n#| viewerHeight: 600\nlibrary(tibble)\nlibrary(munsell)\nlibrary(shiny)\nlibrary(ggplot2)\n\nui &lt;- fluidPage(\n  plotOutput(outputId = \"normalDistPlot2\"),\n  numericInput(\n    \"normalcutoff\",\n    \"Z cutoff value:\",\n    min = -3,\n    max = 3,\n    value = 1,\n    step = .05\n  ),\n  radioButtons(\n    \"normaltail\",\n    \"Choose a tail:\",\n    choices = c(\"Upper Tail\", \"Lower Tail\")\n  )\n)\n\nserver &lt;- function(input, output){\n  output$normalDistPlot2 &lt;- renderPlot({\n    prop &lt;- ifelse(\n      input$normaltail == \"Upper Tail\",\n      round(pnorm(input$normalcutoff, lower.tail = FALSE), 3),\n      round(pnorm(input$normalcutoff, lower.tail = TRUE), 3)\n    )\n  \n    p &lt;- ggplot(data.frame(x = c(-4, 4)), aes(x = x)) +\n      xlim(-4, 4) +\n      ylim(0, .5) +\n  \n      stat_function(fun = dnorm)\n  \n    if (input$normaltail == \"Upper Tail\") {\n      p &lt;- p +\n        stat_function(\n          fun = dnorm,\n          geom = \"area\",\n          fill = \"#b2df8a\",\n          xlim = c(-4, input$normalcutoff)\n        ) +\n        stat_function(\n          fun = dnorm,\n          geom = \"area\",\n          fill = \"#1F78B4\",\n          xlim = c(input$normalcutoff, 4)\n        ) +\n        geom_text(label = paste0(\"Proportion: \", prop), x = 3, y = .3)\n    } else if (input$normaltail == \"Lower Tail\") {\n      p &lt;- p +\n        stat_function(\n          fun = dnorm,\n          geom = \"area\",\n          fill = \"#1F78B4\",\n          xlim = c(-4, input$normalcutoff)\n        ) +\n        stat_function(\n          fun = dnorm,\n          geom = \"area\",\n          fill = \"#b2df8a\",\n          xlim = c(input$normalcutoff, 4)\n        ) +\n        geom_text(label = paste0(\"Proportion: \", prop), x = -3, y = .3)\n    }\n  \n    p &lt;- p +\n      geom_vline(xintercept = input$normalcutoff, color = \"black\") +\n      labs(x = \"\\n z\", y = \"density \\n\") +\n      theme_bw(base_size = 22) +\n      geom_text(\n        label = paste0(\"Cutoff: \", input$normalcutoff),\n        x = input$normalcutoff - .7,\n        y = .45\n      )\n  \n    p\n  })\n}\n\nshinyApp(ui, server)"
+  },
+  {
+    "objectID": "index.html#learning-check-1",
+    "href": "index.html#learning-check-1",
+    "title": "Hypothesis Testing and \\(p\\)-Values",
+    "section": "Learning check",
+    "text": "Learning check\n\n\nWhat proportion of scores from a normal distribution are above 1.6?\n\n\n\nAnswer: 0.055 or 5.5% of scores are above Z = 1.6\n\n\n\nWhat Z score would be obtained for \\(X = 45\\) with \\(\\text{mean} = 50\\) and \\(\\text{Standard deviation} = 10\\)?\nWhat proportion of scores from a normal distribution are below this value?\n\n\n\nAnswer: \\(Z = \\frac{45-50}{10} = -.5\\), with .309 or 30.9% of scores below this value"
+  },
+  {
+    "objectID": "index.html#unstandardized-to-standardized",
+    "href": "index.html#unstandardized-to-standardized",
+    "title": "Hypothesis Testing and \\(p\\)-Values",
+    "section": "Unstandardized to Standardized",
+    "text": "Unstandardized to Standardized\nStandardization does not change the relative order of a set of scores\nTo see this, the app on the next slide\n\nSimulates 20,000 values for any chosen mean and standard deviation\nUnstandardized scores are on the left\nStandardized scores are on the right"
+  },
+  {
+    "objectID": "index.html#unstandardized-to-standardized-1",
+    "href": "index.html#unstandardized-to-standardized-1",
+    "title": "Hypothesis Testing and \\(p\\)-Values",
+    "section": "Unstandardized to Standardized",
+    "text": "Unstandardized to Standardized\n#| '!! shinylive warning !!': |\n#|   shinylive does not work in self-contained HTML documents.\n#|   Please set `embed-resources: false` in your metadata.\n#| standalone: true\n#| panel: fill\n#| fig-align: center\n#| viewerHeight: 650\nlibrary(tibble)\nlibrary(munsell)\nlibrary(shiny)\nlibrary(ggplot2)\n\ntheme_minimalism &lt;- function(base_size = 20) {\n  theme_minimal(base_size = base_size) + # ggplot's minimal theme hides many unnecessary features of plot\n    theme(\n      # make modifications to the theme\n      panel.grid.major.y = element_blank(), # hide major grid for y axis\n      panel.grid.minor.y = element_blank(), # hide minor grid for y axis\n      panel.grid.major.x = element_blank(), # hide major grid for x axis\n      panel.grid.minor.x = element_blank(), # hide minor grid for x axis\n      #text=element_text(size=14),           # font aesthetics\n      #axis.text=element_text(size=12),\n      #axis.title=element_text(size=14,face=\"bold\"))\n      axis.title = element_text(face = \"bold\")\n    )\n}\n\nui &lt;- fluidPage(\n  fluidRow(\n    column(width = 6,\n           plotOutput(outputId = \"zScorePlot2\")),\n    column(width = 6,\n           plotOutput(outputId = \"zScorePlot3\"))\n  ),\n  sliderInput(\n      \"mu2\",\n      \"Distribution Mean\",\n      min = 40,\n      max = 60,\n      value = 50,\n      step = 1\n  ),\n  sliderInput(\n      \"stdev2\",\n      \"Distribution SD\",\n      min = 4,\n      max = 6,\n      value = 5,\n      step = .25\n  )\n)\n\n\nserver &lt;- function(input, output){\n  # If we were to simulate the data;\n  # alternative is to just use dnorm\n  datstd &lt;- reactive({\n    set.seed(runif(1, 1000 + input$mu2 + input$stdev2, 2000))\n    #set.seed(4567)\n    raw = rnorm(20000, mean = input$mu2, sd = input$stdev2)\n    standardized = scale(raw)\n    data.frame(raw, standardized)\n  })\n  \n  output$zScorePlot2 &lt;- renderPlot({\n    lower &lt;- 50 - 3 * input$stdev2\n    upper &lt;- 50 + 3 * input$stdev2\n  \n    dat &lt;- datstd()\n    ggplot(\n      data = dat,\n      aes(\n        raw,\n        colour = \"Distribution of Sample means\",\n        fill = \"Distribution of Sample means\"\n      )\n    ) +\n      #geom_histogram(bins = length(unique(round(dat$raw,0)))) +\n      geom_histogram(bins = 50) +\n      annotate(\n        \"text\",\n        x = Inf,\n        y = Inf,\n        label = paste0(\n          \"Distribution Mean = \",\n          input$mu2,\n          \" \\n Distribution SD = \",\n          input$stdev2\n        ),\n        vjust = 1,\n        hjust = 1\n      ) +\n      ylab(\"Count\") +\n      xlab(\"Well-Being Score\") +\n      #Sets the x axis ticks to cover the whole plot\n      scale_x_continuous(\n        limits = c(lower, upper),\n        breaks = seq(round(lower), round(upper), by = input$stdev2)\n      ) +\n      scale_colour_manual(\"Legend\", values = c(\"#b2df8a\")) +\n      scale_fill_manual(\"Legend\", values = c(\"#b2df8a\")) +\n      #Clears the y-axis ticks\n      scale_y_continuous(breaks = NULL) +\n      theme_minimalism() +\n      theme(legend.position = \"none\") +\n      xlim(25, 75) +\n      ylim(0, 2200)\n  })\n  \n  output$zScorePlot3 &lt;- renderPlot({\n    lower &lt;- -3\n    upper &lt;- 3\n    dat &lt;- datstd()\n    ggplot(\n      data = dat,\n      aes(\n        standardized,\n        colour = \"Distribution of (Standardized) \\n Sample means\",\n        fill = \"Distribution of (Standardized) \\n Sample means\"\n      )\n    ) +\n      #geom_histogram(bins = length(unique(round(dat$raw,0)))) +\n      geom_histogram(bins = 50) +\n      annotate(\n        \"text\",\n        x = Inf,\n        y = Inf,\n        label = paste0(\"Distribution Mean = \", 0, \" \\n Distribution SD = \", 1),\n        vjust = 1,\n        hjust = 1\n      ) +\n      #Clears the y-axis label\n      ylab(\"Count\") +\n      xlab(\"Well-Being Score (Standardized)\") +\n      #Sets the x axis ticks to cover the whole plot\n      scale_x_continuous(\n        limits = c(lower, upper),\n        breaks = seq(round(lower), round(upper), by = 1)\n      ) +\n      #Clears the y-axis ticks\n      scale_y_continuous(breaks = NULL) +\n      scale_colour_manual(\"Legend\", values = c(\"#b2df8a\")) +\n      scale_fill_manual(\"Legend\", values = c(\"#b2df8a\")) +\n      theme_minimalism() +\n      theme(legend.position = \"none\") +\n      ylim(0, 2200)\n  })\n}\n\nshinyApp(ui, server)"
+  },
+  {
+    "objectID": "index.html#unstandardized-to-standardized-2",
+    "href": "index.html#unstandardized-to-standardized-2",
+    "title": "Hypothesis Testing and \\(p\\)-Values",
+    "section": "Unstandardized to Standardized",
+    "text": "Unstandardized to Standardized\n\n\nRegardless of the mean and standard deviation of the unstandardized scores, what will the mean and standard deviation be for the standardized scores?\n\n\n\nThe standardized distribution will always have a mean of 0 and standard deviation of 1"
+  },
+  {
+    "objectID": "index.html#null-alternative-hypotheses",
+    "href": "index.html#null-alternative-hypotheses",
+    "title": "Hypothesis Testing and \\(p\\)-Values",
+    "section": "Null & Alternative Hypotheses",
+    "text": "Null & Alternative Hypotheses\n\n\nWhat do the null and alternative hypotheses represent?\n\n\n\nIn this example, the null hypothesis (\\(H_0\\)) represents the idea that the population of university students have mean well-being scores of 50; any difference between our sample mean and the hypothesized value of 50 could be just due to chance.\nThe alternative hypothesis (\\(H_1\\) or \\(H_a\\)) represents the idea that the population of university students have mean well-being scores that are different from 50. But, the exact mean of university well-being is not specified."
+  },
+  {
+    "objectID": "index.html#null-alternative-hypotheses-1",
+    "href": "index.html#null-alternative-hypotheses-1",
+    "title": "Hypothesis Testing and \\(p\\)-Values",
+    "section": "Null & Alternative Hypotheses",
+    "text": "Null & Alternative Hypotheses\n\n\nWhy do we rarely know what the true population distribution is?\n\n\n\nBecause any attribute in our population can only be estimated/approximated based on sample data. If we could obtain the entire population’s data, then use of inferential statistics is not necessary.\n\n\n\nWhy are there an infinite number of alternative distributions?\n\n\n\nThe alternative hypothesis does not specify a specific value for the mean parameter, it only states that the mean is different than that stated under \\(H_0\\)."
+  },
+  {
+    "objectID": "index.html#logic-of-hypothesis-testing",
+    "href": "index.html#logic-of-hypothesis-testing",
+    "title": "Hypothesis Testing and \\(p\\)-Values",
+    "section": "Logic of hypothesis testing",
+    "text": "Logic of hypothesis testing\n\n\nWhen we say, “what distribution did the mean likely come from,” what are we really asking?\n\n\n\nWe want to know whether the observed mean from the sample (in our effort to estimate the population mean), is plausible under the null hypothesis. If it is not, we reject the null hypothesis in favor of the alternative hypothesis.\n\n\n\nIs a single sample’s mean sufficient to tell us whether the alternative hypothesis is true?\n\n\n\nNo, hypothesis testing only evaluates whether the observed sample mean is likely or unlikely under the null hypothesis. It does not provide explicit information about the alternative hypothesis."
+  },
+  {
+    "objectID": "index.html#components-of-hypothesis-testing",
+    "href": "index.html#components-of-hypothesis-testing",
+    "title": "Hypothesis Testing and \\(p\\)-Values",
+    "section": "Components of hypothesis testing",
+    "text": "Components of hypothesis testing\n\n\nAre \\(\\alpha\\) and the critical value determined assuming \\(H_0\\) is true or the alternative hypothesis is true?\n\n\n\nThe researcher chooses \\(\\alpha\\). Its critical value is determined assuming \\(H_0\\) is true. Each value of \\(\\alpha\\) has a one-to-one relationship with a corresponding critical value.\n\n\n\nIs a \\(p\\)-value the probability that \\(H_0\\) is true?\n\n\n\nNo, but this is a common misconception.\n\n\n\nWhat does a \\(p\\)-value represent?\n\n\n\nA \\(p\\)-value is the probability of observing a test statistic as extreme or more extreme than that for our sample, if \\(H_0\\) is true. In other words, it allows us to judge whether the observed data is incompatible with \\(H_0\\)."
+  },
+  {
+    "objectID": "index.html#components-of-hypothesis-testing-1",
+    "href": "index.html#components-of-hypothesis-testing-1",
+    "title": "Hypothesis Testing and \\(p\\)-Values",
+    "section": "Components of hypothesis testing",
+    "text": "Components of hypothesis testing\n\n\nIf an observed mean (or its corresponding observed test statistic) exceeds the critical value, what conclusion can we draw?\n\n\n\nWe conclude that the sample mean is unlikely to have come from the null distribution, so we reject the null hypothesis.\n\n\n\nIf an observed mean (or its corresponding observed test statistic) exceeds the critical value, will its corresponding \\(p\\)-value be less than or greater than \\(\\alpha\\)?\n\n\n\nIf an observed test statistic is greater than the critical value, its corresponding \\(p\\)-value will be less than \\(\\alpha\\). Conversely, if an observed test statistic is less than the critical value, its corresponding \\(p\\)-value will be greater than \\(\\alpha\\). In general, use of either the test statistic or \\(p\\)-value will yield the same conclusion."
+  },
+  {
+    "objectID": "index.html#components-of-hypothesis-testing-2",
+    "href": "index.html#components-of-hypothesis-testing-2",
+    "title": "Hypothesis Testing and \\(p\\)-Values",
+    "section": "Components of hypothesis testing",
+    "text": "Components of hypothesis testing\n\n\nWhat determines the size of the critical region?\n\n\n\nChoice of \\(\\alpha\\). \\(\\alpha\\) directly corresponds to the proportion of the null distribution that is in the critical region.\n\n\n\nWhat determines the critical value (or cut-off for the critical region)?\n\n\n\nThe critical value, or cut-off/threshold, is primarily determined by \\(\\alpha\\), but also requires knowledge of the null distribution."
+  },
+  {
+    "objectID": "index.html#test-your-knowledge-2",
+    "href": "index.html#test-your-knowledge-2",
+    "title": "Hypothesis Testing and \\(p\\)-Values",
+    "section": "Test your knowledge",
+    "text": "Test your knowledge\n\n\nSuppose we set \\(\\alpha = .05\\). Later we collect data, calculate a test statistic, and the \\(p\\)-value = .08. Do we reject \\(H_0\\)? What conclusion do we make?\n\n\n\nIn this case \\(p &gt; \\alpha\\), so we do not reject \\(H_0\\). \n\n\n\nSuppose we set \\(\\alpha = .01\\). Later we collect data, calculate a test statistic, and the \\(p\\)-value = .03. Do we reject \\(H_0\\)? What conclusion do we make?\n\n\n\nAgain, \\(p &gt; \\alpha\\), so we do not reject \\(H_0\\). \n\n\n\nUnder which situation are we more likely to reject \\(H_0\\): When \\(\\alpha=.05\\) or when \\(\\alpha = .10\\)?\n\n\n\nWhen \\(\\alpha = .1\\), there are more possible values of the test statistic that could result in rejecting \\(H_0\\). Though note that \\(\\alpha=.05\\) or \\(\\alpha=.01\\) are more typical choices in practice than \\(\\alpha=.1\\)."
+  }
+]
