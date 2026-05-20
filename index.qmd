@@ -2771,7 +2771,7 @@ The same concepts in this module also apply to other kinds of hypothesis tests:
 
 This concludes the module on $p$-values
 
-This module made available by a small grant from the Association for Psychological Science
+This module made available by the Small Grants for Teaching opportunity from the Association for Psychological Science (APS Fund for Teaching and Public Understanding of Psychological Science)
 
 Authors: Jeremy Rappel, Mira Saad, Carl F. Falk, Jens Kreitewolf
 
